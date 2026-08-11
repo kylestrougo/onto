@@ -13,9 +13,11 @@ from onto.config import Config  # noqa: E402
 def app():
     fd, path = tempfile.mkstemp(suffix=".db")
     os.close(fd)
+    upload_dir = tempfile.mkdtemp(prefix="onto-uploads-")
 
     class TestConfig(Config):
         DATABASE = path
+        UPLOAD_DIR = upload_dir
         SECRET_KEY = "test-secret"
         TESTING = True
         SESSION_COOKIE_SECURE = False
@@ -34,6 +36,9 @@ def app():
             os.unlink(path + suffix)
         except OSError:
             pass
+    import shutil
+
+    shutil.rmtree(upload_dir, ignore_errors=True)
 
 
 @pytest.fixture()

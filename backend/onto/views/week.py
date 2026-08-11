@@ -10,7 +10,7 @@ from __future__ import annotations
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from .. import commitments, disclosure, goals, mix, periods, scoring
+from .. import commitments, disclosure, feed, goals, mix, periods, scoring, uploads
 
 bp = Blueprint("week", __name__)
 
@@ -90,6 +90,7 @@ def add(key: str):
     if error:
         # 200 on purpose: htmx only swaps 2xx, and the error is the content.
         return render_template("partials/_drop_error.html", message=error)
+    feed.record(current_user.id, "committed", goal_id=goal["id"], commitment_id=cid)
     return _card(cid, key)
 
 
@@ -107,8 +108,28 @@ def log(cid: int):
     # Guard one-shot kinds against logging past done (double-tap, htmx retry).
     if commitments.logged_count(cid) < (c["target"] or 1):
         commitments.log(current_user.id, c)
+        feed.record(current_user.id, "completed", goal_id=c["goal_id"], commitment_id=cid)
         for flag in disclosure.evaluate_after_completion(current_user.id):
             flash(disclosure.FLAGS[flag])
+    return _card(cid, c["period_key"], c["period_kind"])
+
+
+@bp.post("/commitments/<int:cid>/photo")
+@login_required
+def attach_photo(cid: int):
+    """Optional photo on a completed item (spec 6.3). Attaches to the most
+    recent check-off."""
+    c = _own_or_404(cid)
+    file = request.files.get("photo")
+    saved = uploads.save(file) if file else None
+    if saved:
+        from ..db import execute
+
+        execute(
+            "UPDATE completions SET photo_path = ? WHERE id ="
+            " (SELECT id FROM completions WHERE commitment_id = ? ORDER BY id DESC LIMIT 1)",
+            (saved, cid),
+        )
     return _card(cid, c["period_key"], c["period_kind"])
 
 

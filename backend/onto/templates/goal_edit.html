@@ -40,4 +40,24 @@
   <button type="submit">Save</button>
   <a class="btn btn-quiet" href="{{ url_for('library.index') }}">Cancel</a>
 </form>
+
+{% if unlocked('social') %}
+<h2>Who can see it</h2>
+<form method="post" action="{{ url_for('social.set_visibility', goal_id=goal['id']) }}" class="goal-form">
+  <label class="check-row"><input type="radio" name="visibility" value="private"
+    {% if goal['visibility'] == 'private' %}checked{% endif %}> Just me</label>
+  <label class="check-row"><input type="radio" name="visibility" value="friends"
+    {% if goal['visibility'] == 'friends' %}checked{% endif %}> My friends</label>
+  <label class="check-row"><input type="radio" name="visibility" value="public"
+    {% if goal['visibility'] == 'public' %}checked{% endif %}> Anyone on here</label>
+  <button type="submit" class="btn-quiet btn">Save visibility</button>
+</form>
+
+<h2>Do it together</h2>
+<p class="muted">Invite a friend in — you'll share the goal, and either of you can check it off.</p>
+<form method="post" action="{{ url_for('social.invite', goal_id=goal['id']) }}" class="friend-add">
+  <input name="username" placeholder="Friend's username" required>
+  <button type="submit">Invite</button>
+</form>
+{% endif %}
 {% endblock %}

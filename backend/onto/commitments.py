@@ -88,10 +88,18 @@ def add(
 def own_commitment(user_id: int, commitment_id: int):
     """Commitment + its goal, only if the user is a member of the goal."""
     return query(
-        "SELECT cm.*, g.title, g.kind, g.category_id, g.subcategory_id, g.created_by AS goal_owner"
+        "SELECT cm.*, g.title, g.kind, g.category_id, g.subcategory_id, g.created_by AS goal_owner,"
+        " c.name AS category_name, c.slug AS category_slug, s.name AS subcategory_name,"
+        " (SELECT COUNT(*) FROM goal_members gm WHERE gm.goal_id = g.id) AS member_count,"
+        " (SELECT GROUP_CONCAT(DISTINCT u.username) FROM completions cp"
+        "   JOIN users u ON u.id = cp.user_id WHERE cp.commitment_id = cm.id) AS logger_names,"
+        " (SELECT cp.photo_path FROM completions cp WHERE cp.commitment_id = cm.id"
+        "   AND cp.photo_path IS NOT NULL ORDER BY cp.id DESC LIMIT 1) AS photo_path"
         " FROM commitments cm"
         " JOIN goals g ON g.id = cm.goal_id"
         " JOIN goal_members m ON m.goal_id = g.id AND m.user_id = ?"
+        " JOIN categories c ON c.id = g.category_id"
+        " LEFT JOIN subcategories s ON s.id = g.subcategory_id"
         " WHERE cm.id = ?",
         (user_id, commitment_id),
         one=True,
@@ -151,7 +159,12 @@ def for_period(user_id: int, period_kind: str, period_key: str):
     return query(
         "SELECT cm.*, g.title, g.kind, g.recurring, g.discovery_enabled,"
         " c.name AS category_name, c.slug AS category_slug, s.name AS subcategory_name,"
-        " (SELECT COUNT(*) FROM completions cp WHERE cp.commitment_id = cm.id) AS logged"
+        " (SELECT COUNT(*) FROM completions cp WHERE cp.commitment_id = cm.id) AS logged,"
+        " (SELECT COUNT(*) FROM goal_members gm WHERE gm.goal_id = g.id) AS member_count,"
+        " (SELECT GROUP_CONCAT(DISTINCT u.username) FROM completions cp"
+        "   JOIN users u ON u.id = cp.user_id WHERE cp.commitment_id = cm.id) AS logger_names,"
+        " (SELECT cp.photo_path FROM completions cp WHERE cp.commitment_id = cm.id"
+        "   AND cp.photo_path IS NOT NULL ORDER BY cp.id DESC LIMIT 1) AS photo_path"
         " FROM commitments cm"
         " JOIN goals g ON g.id = cm.goal_id"
         " JOIN goal_members m ON m.goal_id = g.id AND m.user_id = ?"

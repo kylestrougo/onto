@@ -22,6 +22,12 @@
       {% endif %}
       <a href="{{ url_for('library.index') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('library.') }}">Things I want to do</a>
+      {% if unlocked('social') %}
+      <a href="{{ url_for('social.show_feed') }}"
+         class="{{ 'active' if request.endpoint == 'social.show_feed' }}">Feed</a>
+      <a href="{{ url_for('social.friends') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('social.') and request.endpoint != 'social.show_feed' }}">Friends</a>
+      {% endif %}
       {% if unlocked('mix') %}
       <a href="{{ url_for('mix.edit') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('mix.') }}">Balance</a>

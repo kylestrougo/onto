@@ -61,6 +61,8 @@
       <strong>{{ goal['title'] }}</strong>
       <span class="tag tag-{{ goal['category_slug'] }}">{{ goal['subcategory_name'] or goal['category_name'] }}</span>
       {% if goal['recurring'] %}<span class="muted">every week</span>{% endif %}
+      {% if goal['shared_with'] %}<span class="muted">with {{ goal['shared_with'] }}</span>{% endif %}
+      {% if goal['visibility'] != 'private' %}<span class="muted">· {{ 'friends can see' if goal['visibility'] == 'friends' else 'public' }}</span>{% endif %}
     </div>
     <div class="goal-row-meta">
       <span class="muted">

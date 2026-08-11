@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Friends' week — Onto{% endblock %}
+{% block content %}
+<div class="week-layout">
+  <section>
+    <h1>What everyone's up to</h1>
+    {% if items %}
+    <ul class="goal-rows">
+      {% for item in items %}
+      <li class="goal-row feed-item">
+        <div class="goal-row-main">
+          <a href="{{ url_for('social.profile', username=item['username']) }}"><strong>{{ item['username'] }}</strong></a>
+          {% if item['verb'] == 'completed' %}did{% elif item['verb'] == 'committed' %}is planning{% elif item['verb'] == 'goal_shared' %}shared{% else %}picked{% endif %}
+          <strong>"{{ item['goal_title'] }}"</strong>
+          <span class="tag tag-{{ item['category_slug'] }}">{{ item['category_name'] }}</span>
+        </div>
+        <span class="muted">{{ item['created_at'][:10] }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Quiet so far. Things your friends plan and finish show up here —
+    when their goals are shared with friends.</p>
+    {% endif %}
+  </section>
+
+  <aside class="library-panel">
+    <h2>This week's board</h2>
+    <p class="muted">{{ week_label }}</p>
+    <ol class="board">
+      {% for row in board %}
+      <li class="board-row">
+        <span>{% if row['username'] == 'you' %}you{% else %}<a href="{{ url_for('social.profile', username=row['username']) }}">{{ row['username'] }}</a>{% endif %}</span>
+        <span class="board-score">
+          {% if row['visible'] %}{{ row['earned'] }} pts{% else %}—{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
+    <p class="muted panel-foot">Same points for everyone, so it's a fair race.
+    A dash means their goals aren't shared with you.</p>
+  </aside>
+</div>
+{% endblock %}

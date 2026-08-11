@@ -4,7 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from .. import commitments, goals, mix, periods, scoring
+from .. import commitments, feed, goals, mix, periods, scoring
 
 bp = Blueprint("month", __name__)
 
@@ -66,6 +66,7 @@ def add(key: str):
         )
     if error:
         return render_template("partials/_drop_error.html", message=error)
+    feed.record(current_user.id, "committed", goal_id=goal["id"], commitment_id=cid)
     from .week import _card
 
     return _card(cid, key, "month")

@@ -156,14 +156,17 @@ def library(user_id: int, include_retired: bool = True):
         " s.name AS subcategory_name,"
         " (SELECT COUNT(*) FROM commitments cm WHERE cm.goal_id = g.id) AS times_committed,"
         " (SELECT COUNT(*) FROM commitments cm WHERE cm.goal_id = g.id"
-        "   AND cm.completed_at IS NOT NULL) AS times_completed"
+        "   AND cm.completed_at IS NOT NULL) AS times_completed,"
+        " (SELECT GROUP_CONCAT(u.username) FROM goal_members gm"
+        "   JOIN users u ON u.id = gm.user_id"
+        "   WHERE gm.goal_id = g.id AND gm.user_id != ?) AS shared_with"
         " FROM goals g"
         " JOIN goal_members m ON m.goal_id = g.id AND m.user_id = ?"
         " JOIN categories c ON c.id = g.category_id"
         " LEFT JOIN subcategories s ON s.id = g.subcategory_id"
         + ("" if include_retired else " WHERE g.retired_at IS NULL")
         + " ORDER BY c.position, g.retired_at IS NOT NULL, g.title COLLATE NOCASE",
-        (user_id,),
+        (user_id, user_id),
     )
 
 

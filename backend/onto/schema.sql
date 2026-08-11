@@ -153,3 +153,45 @@ CREATE TABLE IF NOT EXISTS mix_targets (
     percent INTEGER NOT NULL CHECK (percent BETWEEN 1 AND 100),
     PRIMARY KEY (user_id, period_kind, category_id)
 );
+
+-- ── Social (spec 7) ──────────────────────────────────────────────────────
+
+-- Mutual friendships. The pair is normalised (lo < hi) so one row serves
+-- both directions and the UNIQUE constraint can't be dodged by swapping
+-- requester and addressee.
+CREATE TABLE IF NOT EXISTS friendships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_lo INTEGER NOT NULL REFERENCES users(id),
+    user_hi INTEGER NOT NULL REFERENCES users(id),
+    requester_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (user_lo < user_hi),
+    UNIQUE (user_lo, user_hi)
+);
+
+-- Invitations into a goal (spec 7.5). Accepting inserts a goal_members row —
+-- joint ownership, joint completion (spec 7.4).
+CREATE TABLE IF NOT EXISTS goal_invites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    goal_id INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+    from_id INTEGER NOT NULL REFERENCES users(id),
+    to_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (goal_id, to_id)
+);
+
+-- Write-time feed rows (spec 7.3). Visibility is enforced at read time by
+-- joining the goal — a goal later made private disappears from history too.
+CREATE TABLE IF NOT EXISTS activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    verb TEXT NOT NULL CHECK (verb IN ('committed', 'completed', 'goal_shared', 'suggestion_accepted')),
+    goal_id INTEGER REFERENCES goals(id) ON DELETE CASCADE,
+    commitment_id INTEGER,
+    event_id INTEGER,
+    meta_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_activity_user ON activity(user_id, id DESC);

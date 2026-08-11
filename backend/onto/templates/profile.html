@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ person['username'] }} — Onto{% endblock %}
+{% block content %}
+<h1>{{ person['username'] }}</h1>
+
+{% if friendship and friendship['status'] == 'accepted' %}
+  {% if score %}
+  <p class="muted">This week: <strong>{{ score['earned'] }} pts</strong>
+    ({{ score['percent'] }}% of what they planned)</p>
+  {% endif %}
+{% elif friendship and friendship['status'] == 'pending' %}
+  <p class="muted">Friend request pending.</p>
+{% else %}
+  <form method="post" action="{{ url_for('social.request_friend') }}" class="inline-form">
+    <input type="hidden" name="username" value="{{ person['username'] }}">
+    <button class="btn" type="submit">Ask to be friends</button>
+  </form>
+{% endif %}
+
+{% if goals %}
+<h2>What they're working on</h2>
+<ul class="goal-rows">
+  {% for goal in goals %}
+  <li class="goal-row">
+    <div class="goal-row-main">
+      <strong>{{ goal['title'] }}</strong>
+      <span class="tag tag-{{ goal['category_slug'] }}">{{ goal['category_name'] }}</span>
+      {% if goal['visibility'] == 'public' %}<span class="muted">public</span>{% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">Nothing shared with you yet.</p>
+{% endif %}
+{% endblock %}

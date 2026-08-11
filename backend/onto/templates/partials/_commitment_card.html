@@ -5,6 +5,20 @@
     <span class="commit-title">{{ c['title'] }}</span>
     <span class="tag tag-{{ c['category_slug'] }}">{{ c['subcategory_name'] or c['category_name'] }}</span>
     {% if c['due_date'] %}<span class="muted">by {{ c['due_date'] }}</span>{% endif %}
+    {% if c['member_count'] and c['member_count'] > 1 %}
+      <span class="muted shared-note">together{% if c['logger_names'] %} · done by {{ c['logger_names'] }}{% endif %}</span>
+    {% endif %}
+    {% if c['photo_path'] %}
+      <a href="{{ url_for('uploaded', name=c['photo_path']) }}" target="_blank"
+         class="photo-thumb-link"><img src="{{ url_for('uploaded', name=c['photo_path']) }}"
+         alt="proof" class="photo-thumb"></a>
+    {% elif c['completed_at'] %}
+      <form hx-post="{{ url_for('week.attach_photo', cid=c['id']) }}" hx-encoding="multipart/form-data"
+            hx-target="#commitment-{{ c['id'] }}" hx-swap="outerHTML" class="photo-form">
+        <label class="photo-label" title="Add a photo">📷<input type="file" name="photo"
+               accept="image/*" class="photo-input" onchange="this.form.requestSubmit()"></label>
+      </form>
+    {% endif %}
   </div>
   <div class="commit-actions">
     {% if c['target'] and c['target'] > 1 %}

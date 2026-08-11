@@ -26,7 +26,7 @@ def create_app(config_object=Config) -> Flask:
     )
 
     from . import auth, cli, db, disclosure
-    from .views import admin, library, mix as mix_view, month, week
+    from .views import admin, library, mix as mix_view, month, social_views, week
 
     db.init_app(app)
     cli.init_app(app)
@@ -37,10 +37,22 @@ def create_app(config_object=Config) -> Flask:
     app.register_blueprint(month.bp)
     app.register_blueprint(admin.bp)
     app.register_blueprint(mix_view.bp)
+    app.register_blueprint(social_views.bp)
 
     @app.get("/healthz")
     def healthz():
         return {"ok": True}
+
+    @app.get("/uploads/<path:name>")
+    def uploaded(name: str):
+        from flask import send_from_directory
+        from flask_login import current_user
+
+        # Photos ride the honor system like everything else, but never leave
+        # the circle: only signed-in users can fetch them.
+        if not current_user.is_authenticated:
+            return render_template("error.html", code=403, message="You can't do that."), 403
+        return send_from_directory(app.config["UPLOAD_DIR"], name)
 
     @app.errorhandler(404)
     def _not_found(_e):

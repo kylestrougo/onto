@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Friends — Onto{% endblock %}
+{% block content %}
+<h1>Friends</h1>
+
+<form method="post" action="{{ url_for('social.request_friend') }}" class="friend-add">
+  <input name="username" placeholder="Add a friend by username" required>
+  <button type="submit">Ask</button>
+</form>
+
+{% if goal_invites %}
+<h2>Shared-goal invites</h2>
+<ul class="goal-rows">
+  {% for inv in goal_invites %}
+  <li class="goal-row">
+    <div class="goal-row-main">
+      <strong>{{ inv['from_username'] }}</strong> wants to do
+      <strong>"{{ inv['title'] }}"</strong> with you
+    </div>
+    <div class="goal-row-meta">
+      <form method="post" action="{{ url_for('social.accept_invite', invite_id=inv['id']) }}" class="inline-form">
+        <button class="btn-mini btn-go" type="submit">I'm in</button>
+      </form>
+      <form method="post" action="{{ url_for('social.decline_invite', invite_id=inv['id']) }}" class="inline-form">
+        <button class="btn-mini" type="submit">No thanks</button>
+      </form>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if incoming %}
+<h2>Asked to be friends</h2>
+<ul class="goal-rows">
+  {% for req in incoming %}
+  <li class="goal-row">
+    <div class="goal-row-main"><strong>{{ req['username'] }}</strong></div>
+    <div class="goal-row-meta">
+      <form method="post" action="{{ url_for('social.accept_friend', fid=req['id']) }}" class="inline-form">
+        <button class="btn-mini btn-go" type="submit">Accept</button>
+      </form>
+      <form method="post" action="{{ url_for('social.decline_friend', fid=req['id']) }}" class="inline-form">
+        <button class="btn-mini" type="submit">Decline</button>
+      </form>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Your people</h2>
+{% if friends %}
+<ul class="goal-rows">
+  {% for f in friends %}
+  <li class="goal-row">
+    <div class="goal-row-main">
+      <a href="{{ url_for('social.profile', username=f['username']) }}"><strong>{{ f['username'] }}</strong></a>
+    </div>
+    <form method="post" action="{{ url_for('social.remove_friend', other_id=f['id']) }}" class="inline-form"
+          onsubmit="return confirm('Remove {{ f['username'] }}?')">
+      <button class="btn-mini" type="submit">Remove</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No friends yet — ask someone by their username above.</p>
+{% endif %}
+
+{% if outgoing %}
+<p class="muted">Waiting on: {% for req in outgoing %}{{ req['username'] }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+{% endif %}
+{% endblock %}

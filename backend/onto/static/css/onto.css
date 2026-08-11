@@ -356,3 +356,23 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 .tagbg-hobby { background: #5a6e2a; }
 .tagbg-culture { background: #8e6023; }
 .tagbg-admin-life { background: #777; }
+
+/* ── Social ──────────────────────────────────────────────────────────── */
+.friend-add { display: flex; gap: 0.5rem; max-width: 420px; margin-bottom: 1rem; }
+.friend-add input { flex: 1; }
+.friend-add button { margin-top: 0; }
+.board { list-style: none; margin: 0; padding: 0; counter-reset: board; }
+.board-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.4rem 0.2rem; border-bottom: 1px solid var(--line);
+  counter-increment: board;
+}
+.board-row::before { content: counter(board) "."; color: var(--muted); margin-right: 0.5rem; }
+.board-row span:first-of-type { flex: 1; }
+.board-score { font-weight: 600; font-variant-numeric: tabular-nums; }
+.shared-note { font-size: 0.8rem; }
+.photo-thumb { height: 34px; width: 34px; object-fit: cover; border-radius: 6px; vertical-align: middle; }
+.photo-form { display: inline; }
+.photo-label { cursor: pointer; opacity: 0.55; margin: 0; display: inline; font-weight: normal; }
+.photo-label:hover { opacity: 1; }
+.photo-input { display: none; }
