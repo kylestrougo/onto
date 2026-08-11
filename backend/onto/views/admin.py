@@ -48,7 +48,38 @@ def _terms(raw: str) -> list[str]:
 @bp.get("/")
 @admin_required
 def index():
-    return render_template("admin/index.html")
+    from .. import llm
+
+    stats = {
+        "users": query("SELECT COUNT(*) AS n FROM users", one=True)["n"],
+        "goals": query("SELECT COUNT(*) AS n FROM goals", one=True)["n"],
+        "commitments_week": query(
+            "SELECT COUNT(*) AS n FROM commitments WHERE created_at > datetime('now', '-7 days')",
+            one=True,
+        )["n"],
+        "events_by_tier": query(
+            "SELECT tier, COUNT(*) AS n FROM events WHERE status = 'active'"
+            " GROUP BY tier ORDER BY tier"
+        ),
+        "uncategorized": query(
+            "SELECT COUNT(*) AS n FROM events WHERE status='active' AND category_id IS NULL",
+            one=True,
+        )["n"],
+        "suggestions_week": query(
+            "SELECT COUNT(*) AS n FROM suggestions WHERE created_at > datetime('now', '-7 days')",
+            one=True,
+        )["n"],
+        "digests_week": query(
+            "SELECT COUNT(*) AS n FROM digests WHERE created_at > datetime('now', '-7 days')",
+            one=True,
+        )["n"],
+        "sick_sources": query(
+            "SELECT name, consecutive_errors, quarantined_at FROM sources"
+            " WHERE enabled = 0 OR quarantined_at IS NOT NULL OR consecutive_errors > 0"
+        ),
+        "models": llm.stats_rollup(7),
+    }
+    return render_template("admin/index.html", stats=stats)
 
 
 # ── Taxonomy ─────────────────────────────────────────────────────────────

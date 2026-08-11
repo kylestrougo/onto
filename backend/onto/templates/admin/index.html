@@ -2,14 +2,53 @@
 {% block title %}Admin — Onto{% endblock %}
 {% block content %}
 <h1>Admin</h1>
-<ul class="goal-rows">
-  <li class="goal-row"><a href="{{ url_for('admin.taxonomy') }}">Categories &amp; subcategories</a>
-    <span class="muted">add, rename, retire — with discovery search terms</span></li>
-  <li class="goal-row"><a href="{{ url_for('admin.weights') }}">Scoring weights</a>
-    <span class="muted">points per category; flat by default</span></li>
-  <li class="goal-row"><a href="{{ url_for('admin.sources') }}">Event sources</a>
-    <span class="muted">open data, venue feeds, research — provenance and health</span></li>
-  <li class="goal-row"><a href="{{ url_for('admin.events') }}">Event corpus</a>
-    <span class="muted">recent ingests and the uncategorized queue</span></li>
-</ul>
+
+<div class="week-layout">
+  <div>
+    <h2>Right now</h2>
+    <ul class="goal-rows">
+      <li class="goal-row">{{ stats.users }} users · {{ stats.goals }} goals ·
+        {{ stats.commitments_week }} commitments this week</li>
+      <li class="goal-row">
+        Corpus:
+        {% for row in stats.events_by_tier %}tier {{ row['tier'] }}: {{ row['n'] }}{% if not loop.last %} · {% endif %}{% else %}empty{% endfor %}
+        {% if stats.uncategorized %} · <a href="{{ url_for('admin.events') }}">{{ stats.uncategorized }} uncategorized</a>{% endif %}
+      </li>
+      <li class="goal-row">{{ stats.suggestions_week }} suggestions and
+        {{ stats.digests_week }} notes in the last 7 days</li>
+      {% for s in stats.sick_sources %}
+      <li class="goal-row is-retired">Source needs attention: <strong>{{ s['name'] }}</strong>
+        {% if s['quarantined_at'] %}(quarantined){% elif s['consecutive_errors'] %}({{ s['consecutive_errors'] }} errors in a row){% else %}(disabled){% endif %}
+        — <a href="{{ url_for('admin.sources') }}">sources</a></li>
+      {% endfor %}
+    </ul>
+
+    <h2>Models, last 7 days</h2>
+    <ul class="goal-rows">
+      {% for m in stats.models %}
+      <li class="goal-row">
+        <span>{{ m['model'] }}</span>
+        <span class="muted">{{ m['calls'] }} calls · {{ (100 * m['ok_rate']) | round | int }}% ok
+          · ~{{ m['avg_ms'] }}ms{% if m['last_error'] %} · last error: {{ m['last_error'][:60] }}{% endif %}</span>
+      </li>
+      {% else %}
+      <li class="goal-row"><span class="muted">No LLM calls recorded yet.</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div>
+    <h2>Manage</h2>
+    <ul class="goal-rows">
+      <li class="goal-row"><a href="{{ url_for('admin.taxonomy') }}">Categories &amp; subcategories</a>
+        <span class="muted">add, rename, retire — with discovery search terms</span></li>
+      <li class="goal-row"><a href="{{ url_for('admin.weights') }}">Scoring weights</a>
+        <span class="muted">points per category; flat by default</span></li>
+      <li class="goal-row"><a href="{{ url_for('admin.sources') }}">Event sources</a>
+        <span class="muted">open data, venue feeds, research — provenance and health</span></li>
+      <li class="goal-row"><a href="{{ url_for('admin.events') }}">Event corpus</a>
+        <span class="muted">recent ingests and the uncategorized queue</span></li>
+    </ul>
+  </div>
+</div>
 {% endblock %}

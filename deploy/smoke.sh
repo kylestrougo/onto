@@ -74,6 +74,14 @@ else
 fi
 
 [ "$(code "$base/static/css/onto.css")" = "200" ] && ok "static assets served" || bad "static assets not served"
+[ "$(code "$base/static/js/vendor/htmx.min.js")" = "200" ] && ok "htmx vendored and served" || bad "htmx not served"
+
+# Signed-out, every app page must bounce to login — a 500 here means a
+# blueprint or template broke.
+for path in /week/2026-W33 /library /discover /feed /friends /settings /digests /month/2026-08; do
+  c="$(code "$base$path")"
+  [ "$c" = "302" ] && ok "$path redirects signed-out ($c)" || bad "$path returned $c (expected 302)"
+done
 
 db="$(grep -E '^ONTO_DB=' "$repo/backend/.env" | cut -d= -f2-)"
 if [ -f "$db" ]; then
