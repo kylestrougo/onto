@@ -8,7 +8,7 @@ def test_signup_signs_you_in(client):
     resp = sign_up(client)
     assert resp.status_code == 302
     assert resp.headers["Location"] == "/"
-    page = client.get("/")
+    page = client.get("/", follow_redirects=True)
     assert page.status_code == 200
 
 

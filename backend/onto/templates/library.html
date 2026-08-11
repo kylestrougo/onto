@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Things I want to do — Onto{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('week.home') }}">This week</a>
+  <a href="{{ url_for('library.index') }}" class="active">Things I want to do</a>
+{% endblock %}
+{% block content %}
+<h1>Things I want to do</h1>
+<p class="muted">Add them once, use them every week. Drag them into a week from the week page.</p>
+
+<details class="new-goal" {% if not active %}open{% endif %}>
+  <summary>Add something</summary>
+  <form method="post" action="{{ url_for('library.create') }}" class="goal-form">
+    <label>What is it?
+      <input name="title" maxlength="120" placeholder="e.g. Go climbing" required>
+    </label>
+
+    <label>What kind of thing?</label>
+    <div class="kind-picker">
+      {% for kind, (label_text, example) in kind_help.items() %}
+        <label class="kind-option">
+          <input type="radio" name="kind" value="{{ kind }}" {% if kind == 'binary' %}checked{% endif %}>
+          <span><strong>{{ label_text }}</strong> <small>{{ example }}</small></span>
+        </label>
+      {% endfor %}
+    </div>
+
+    <div class="js-target-row">
+      <label>How many times per week?
+        <input name="default_target" type="number" min="1" max="99" value="3">
+      </label>
+    </div>
+
+    <label>Category
+      <select name="category_id" class="js-category" required>
+        {% for cat, subs in taxonomy %}
+          <option value="{{ cat['id'] }}">{{ cat['name'] }} — {{ cat['example'] }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>More specifically <small>(optional)</small>
+      <select name="subcategory_id" class="js-subcategory">
+        <option value="">—</option>
+        {% for cat, subs in taxonomy %}
+          {% for sub in subs %}
+            <option value="{{ sub['id'] }}" data-category="{{ cat['id'] }}">{{ sub['name'] }}</option>
+          {% endfor %}
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="check-row">
+      <input type="checkbox" name="recurring" value="1">
+      Put it in every week automatically
+    </label>
+
+    <button type="submit">Add to my list</button>
+  </form>
+</details>
+
+<ul class="goal-rows">
+  {% for goal in active %}
+  <li class="goal-row">
+    <div class="goal-row-main">
+      <strong>{{ goal['title'] }}</strong>
+      <span class="tag tag-{{ goal['category_slug'] }}">{{ goal['subcategory_name'] or goal['category_name'] }}</span>
+      {% if goal['recurring'] %}<span class="muted">every week</span>{% endif %}
+    </div>
+    <div class="goal-row-meta">
+      <span class="muted">
+        {% if goal['times_committed'] %}
+          done {{ goal['times_completed'] }} of {{ goal['times_committed'] }} times planned
+        {% else %}
+          not planned yet
+        {% endif %}
+      </span>
+      <a class="btn-mini" href="{{ url_for('library.edit_form', goal_id=goal['id']) }}">Edit</a>
+      <form method="post" action="{{ url_for('library.retire', goal_id=goal['id']) }}" class="inline-form">
+        <button class="btn-mini" type="submit">Tuck away</button>
+      </form>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if retired %}
+<details class="retired-list">
+  <summary>Tucked away ({{ retired|length }})</summary>
+  <ul class="goal-rows">
+    {% for goal in retired %}
+    <li class="goal-row is-retired">
+      <div class="goal-row-main">
+        <strong>{{ goal['title'] }}</strong>
+        <span class="muted">done {{ goal['times_completed'] }} of {{ goal['times_committed'] }} times planned</span>
+      </div>
+      <form method="post" action="{{ url_for('library.unretire', goal_id=goal['id']) }}" class="inline-form">
+        <button class="btn-mini" type="submit">Bring back</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+{% endblock %}

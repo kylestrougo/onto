@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Edit — Onto{% endblock %}
+{% block nav %}
+  <a href="{{ url_for('week.home') }}">This week</a>
+  <a href="{{ url_for('library.index') }}" class="active">Things I want to do</a>
+{% endblock %}
+{% block content %}
+<h1>Edit "{{ goal['title'] }}"</h1>
+<form method="post" action="{{ url_for('library.edit', goal_id=goal['id']) }}" class="goal-form">
+  <label>What is it?
+    <input name="title" maxlength="120" value="{{ goal['title'] }}" required>
+  </label>
+
+  {% if goal['kind'] == 'countable' %}
+  <label>How many times per week?
+    <input name="default_target" type="number" min="1" max="99" value="{{ goal['default_target'] or 3 }}">
+  </label>
+  {% endif %}
+
+  <label>Category
+    <select name="category_id" class="js-category" required>
+      {% for cat, subs in taxonomy %}
+        <option value="{{ cat['id'] }}" {% if cat['id'] == goal['category_id'] %}selected{% endif %}>{{ cat['name'] }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>More specifically <small>(optional)</small>
+    <select name="subcategory_id" class="js-subcategory">
+      <option value="">—</option>
+      {% for cat, subs in taxonomy %}
+        {% for sub in subs %}
+          <option value="{{ sub['id'] }}" data-category="{{ cat['id'] }}"
+                  {% if sub['id'] == goal['subcategory_id'] %}selected{% endif %}>{{ sub['name'] }}</option>
+        {% endfor %}
+      {% endfor %}
+    </select>
+  </label>
+
+  <label class="check-row">
+    <input type="checkbox" name="recurring" value="1" {% if goal['recurring'] %}checked{% endif %}>
+    Put it in every week automatically
+  </label>
+
+  <button type="submit">Save</button>
+  <a class="btn btn-quiet" href="{{ url_for('library.index') }}">Cancel</a>
+</form>
+{% endblock %}

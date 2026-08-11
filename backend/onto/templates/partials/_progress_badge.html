@@ -1,0 +1,8 @@
+{# Header count. Included inline on page render, and OOB from mutations. #}
+<span id="week-progress" class="progress-badge" {% if oob %}hx-swap-oob="true"{% endif %}>
+  {%- if progress.total -%}
+    {{ progress.done }} of {{ progress.total }} done
+  {%- else -%}
+    nothing planned yet
+  {%- endif -%}
+</span>

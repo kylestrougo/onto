@@ -1,0 +1,22 @@
+{# Inline prompt when a drop needs one more fact before it can become a
+   commitment: a target for open/countable goals, a date for deadline goals. #}
+<li class="commit-card commit-prompt" id="prompt-{{ goal['id'] }}">
+  <form hx-post="{{ url_for('week.add', key=key) if period_kind == 'week' else url_for('month.add', key=key) }}"
+        hx-target="#prompt-{{ goal['id'] }}" hx-swap="outerHTML" class="prompt-form">
+    <input type="hidden" name="goal_id" value="{{ goal['id'] }}">
+    <span class="commit-title">{{ goal['title'] }}</span>
+    {% if needs == 'target' %}
+      <label class="prompt-label">How many times?
+        <input type="number" name="target" min="1" max="99" value="{{ goal['default_target'] or 3 }}"
+               class="prompt-input" required autofocus>
+      </label>
+    {% else %}
+      <label class="prompt-label">By when?
+        <input type="date" name="due_date" class="prompt-input" required autofocus>
+      </label>
+    {% endif %}
+    <button type="submit" class="btn-mini btn-go">Add it</button>
+    <button type="button" class="btn-mini btn-x" aria-label="Cancel"
+            onclick="this.closest('li').remove()">×</button>
+  </form>
+</li>

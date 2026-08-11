@@ -1,0 +1,7 @@
+{# Empty main swap deletes the card; OOB puts the chip back and fixes the count. #}
+{% if goal and not goal['retired_at'] %}
+  {% with oob = True %}{% include "partials/_goal_chip.html" %}{% endwith %}
+{% endif %}
+{% with progress = oob_progress, oob = True %}
+  {% include "partials/_progress_badge.html" %}
+{% endwith %}

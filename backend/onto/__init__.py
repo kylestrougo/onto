@@ -25,13 +25,15 @@ def create_app(config_object=Config) -> Flask:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    from . import auth, cli, db
-    from .views import week
+    from . import auth, cli, db, disclosure
+    from .views import library, week
 
     db.init_app(app)
     cli.init_app(app)
     auth.init_app(app)
+    disclosure.init_app(app)
     app.register_blueprint(week.bp)
+    app.register_blueprint(library.bp)
 
     @app.get("/healthz")
     def healthz():

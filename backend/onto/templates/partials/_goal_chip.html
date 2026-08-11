@@ -1,0 +1,13 @@
+{# A library goal in the side panel: draggable into the period, with a
+   first-class "+ Add" button — mobile Safari drag is flaky, the button is
+   the load-bearing path. #}
+<li class="goal-chip" id="goal-chip-{{ goal['id'] }}" data-goal-id="{{ goal['id'] }}"
+    {% if oob %}hx-swap-oob="beforeend:#library-list"{% endif %}>
+  <span class="chip-title">{{ goal['title'] }}</span>
+  <span class="chip-meta">
+    {{ goal['category_name'] }}{% if goal['kind'] == 'countable' and goal['default_target'] %} · {{ goal['default_target'] }}×{% endif %}{% if goal['recurring'] %} · every week{% endif %}
+  </span>
+  <button class="btn-mini btn-go chip-add" hx-post="{{ url_for('week.add', key=key) }}"
+          hx-vals='{"goal_id": {{ goal['id'] }}}'
+          hx-target="#commit-list" hx-swap="beforeend">+ Add</button>
+</li>

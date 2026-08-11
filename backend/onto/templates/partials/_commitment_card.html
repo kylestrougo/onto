@@ -1,0 +1,40 @@
+{# One commitment in the period view. Server-rendered truth for every state
+   change; mutations re-render the whole card via outerHTML swap. #}
+<li class="commit-card {% if c['completed_at'] %}is-done{% endif %}" id="commitment-{{ c['id'] }}">
+  <div class="commit-main">
+    <span class="commit-title">{{ c['title'] }}</span>
+    <span class="tag tag-{{ c['category_slug'] }}">{{ c['subcategory_name'] or c['category_name'] }}</span>
+    {% if c['due_date'] %}<span class="muted">by {{ c['due_date'] }}</span>{% endif %}
+  </div>
+  <div class="commit-actions">
+    {% if c['target'] and c['target'] > 1 %}
+      <span class="count">{{ logged }}/{{ c['target'] }}</span>
+      {% if logged > 0 %}
+        <button class="btn-mini" hx-post="{{ url_for('week.unlog', cid=c['id']) }}"
+                hx-target="#commitment-{{ c['id'] }}" hx-swap="outerHTML" aria-label="Undo one">−</button>
+      {% endif %}
+      {% if not c['completed_at'] %}
+        <button class="btn-mini btn-go" hx-post="{{ url_for('week.log', cid=c['id']) }}"
+                hx-target="#commitment-{{ c['id'] }}" hx-swap="outerHTML" aria-label="Log one">+1</button>
+      {% endif %}
+    {% else %}
+      {% if c['completed_at'] %}
+        <button class="btn-mini" hx-post="{{ url_for('week.unlog', cid=c['id']) }}"
+                hx-target="#commitment-{{ c['id'] }}" hx-swap="outerHTML">Undo</button>
+      {% else %}
+        <button class="btn-mini btn-go" hx-post="{{ url_for('week.log', cid=c['id']) }}"
+                hx-target="#commitment-{{ c['id'] }}" hx-swap="outerHTML">Done</button>
+      {% endif %}
+    {% endif %}
+    <button class="btn-mini btn-x" hx-delete="{{ url_for('week.remove', cid=c['id']) }}"
+            hx-target="#commitment-{{ c['id'] }}" hx-swap="outerHTML"
+            hx-confirm="Take this out of the {{ period_kind }}?" aria-label="Remove">×</button>
+  </div>
+</li>
+{% if oob_progress %}
+  {% with progress = oob_progress, oob = True %}
+    {% include "partials/_progress_badge.html" %}
+  {% endwith %}
+  {# The goal just left the library panel for this period. #}
+  <li id="goal-chip-{{ c['goal_id'] }}" hx-swap-oob="delete"></li>
+{% endif %}
