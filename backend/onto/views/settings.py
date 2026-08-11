@@ -3,6 +3,7 @@ escape hatch for progressive disclosure."""
 from __future__ import annotations
 
 import json
+import re
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -13,6 +14,8 @@ from ..notify import send as notify_send
 bp = Blueprint("settings", __name__)
 
 BOROUGHS = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"]
+DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @bp.get("/settings")
@@ -26,6 +29,7 @@ def edit():
         show_everything=bool(row["show_everything"]),
         timezone=row["timezone"],
         prefs=notify_send.prefs_for(current_user.id),
+        days=DAYS,
     )
 
 
@@ -51,11 +55,20 @@ def save():
         send_hour = min(23, max(0, int(request.form.get("send_hour") or 9)))
     except ValueError:
         send_hour = 9
+    try:
+        send_dow = min(6, max(0, int(request.form.get("send_dow") or 0)))
+    except ValueError:
+        send_dow = 0
     if frequency in ("off", "weekly", "daily") and channel in ("email", "inapp", "both"):
+        if channel in ("email", "both") and not EMAIL_RE.match(email):
+            # Email notes without an address would deliver nothing — keep the
+            # in-app channel until they give one that looks real.
+            channel = "inapp"
+            flash("Email notes need an email address — kept them in the app for now.")
         execute(
             "UPDATE notification_prefs SET frequency = ?, channel = ?, email = ?,"
-            " send_hour = ? WHERE user_id = ?",
-            (frequency, channel, email, send_hour, current_user.id),
+            " send_hour = ?, send_dow = ? WHERE user_id = ?",
+            (frequency, channel, email, send_hour, send_dow, current_user.id),
         )
     flash("Saved.")
     return redirect(url_for("settings.edit"))

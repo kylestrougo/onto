@@ -232,3 +232,78 @@ def test_digests_page_shows_and_marks_read(app, signed_in):
     assert b"hello there" in page.data
     with app.app_context():
         assert query("SELECT read_at FROM digests", one=True)["read_at"] is not None
+
+
+def test_email_channel_without_address_falls_back_inapp_once(app, signed_in):
+    """Channel 'email' with no address must still deliver (in-app) and must
+    not re-deliver every hour."""
+    with app.app_context():
+        from onto.notify import send
+
+        uid = query("SELECT id FROM users WHERE username='kyle'", one=True)["id"]
+        send.ensure_prefs(uid)
+        execute(
+            "UPDATE notification_prefs SET frequency='daily', send_hour=0,"
+            " channel='email', email=''"
+        )
+        with _quiet_compose():
+            first = send.send_due_digests()
+            second = send.send_due_digests()
+        assert first["sent"] == 1
+        assert second["skipped"] == 1  # the day is spent
+        assert query("SELECT COUNT(*) AS n FROM digests", one=True)["n"] == 1
+
+
+def test_smtp_failure_delivers_inapp_and_never_duplicates(app, signed_in):
+    from unittest.mock import patch as _patch
+
+    with app.app_context():
+        from onto.notify import send
+
+        uid = query("SELECT id FROM users WHERE username='kyle'", one=True)["id"]
+        send.ensure_prefs(uid)
+        execute(
+            "UPDATE notification_prefs SET frequency='daily', send_hour=0,"
+            " channel='email', email='kyle@example.com'"
+        )
+        with _quiet_compose(), _patch("onto.notify.send._send_email", return_value=False):
+            first = send.send_due_digests()
+            second = send.send_due_digests()
+        assert first["failed"] == 1  # the email leg is flagged for the log
+        assert second["skipped"] == 1  # but the note is not re-sent hourly
+        # The user still got their note, exactly once, in-app.
+        assert query("SELECT COUNT(*) AS n FROM digests", one=True)["n"] == 1
+
+
+def test_settings_reject_email_channel_without_address(app, signed_in):
+    resp = signed_in.post(
+        "/settings",
+        data={"frequency": "weekly", "channel": "email", "email": "not-an-address",
+              "send_hour": "9", "send_dow": "0"},
+        follow_redirects=True,
+    )
+    assert b"kept them in the app" in resp.data
+    with app.app_context():
+        prefs = query("SELECT * FROM notification_prefs", one=True)
+        assert prefs["channel"] == "inapp"
+
+
+def test_settings_save_email_prefs_and_send_day(app, signed_in):
+    signed_in.post(
+        "/settings",
+        data={"frequency": "weekly", "channel": "both", "email": "kyle@example.com",
+              "send_hour": "18", "send_dow": "6"},
+    )
+    with app.app_context():
+        prefs = query("SELECT * FROM notification_prefs", one=True)
+        assert (prefs["channel"], prefs["email"]) == ("both", "kyle@example.com")
+        assert (prefs["send_hour"], prefs["send_dow"]) == (18, 6)
+        # The weekly due-gate honours the chosen day.
+        from datetime import datetime
+
+        from onto.notify.send import _is_due
+
+        sunday_evening = datetime(2026, 8, 16, 19, 0)  # Sunday, weekday 6
+        monday_evening = datetime(2026, 8, 17, 19, 0)
+        assert _is_due(prefs, sunday_evening) is True
+        assert _is_due(prefs, monday_evening) is False

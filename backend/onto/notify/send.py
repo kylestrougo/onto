@@ -143,27 +143,32 @@ def send_due_digests(force_user_id: int | None = None) -> dict:
         facts, prose = compose.compose(user_row)
         subject, text, html = render_digest(user_row, facts, prose)
 
-        ok = True
-        if prefs["channel"] in ("email", "both"):
+        wants_email = prefs["channel"] in ("email", "both")
+        emailed = False
+        if wants_email:
             if prefs["email"]:
-                ok = _send_email(prefs["email"], subject, text, html)
+                emailed = _send_email(prefs["email"], subject, text, html)
             else:
                 log.info("digest: user %s wants email but has no address", prefs["uid"])
-        if prefs["channel"] in ("inapp", "both") or not ok:
-            # In-app is also the safety net when email bounces.
+        if prefs["channel"] in ("inapp", "both") or (wants_email and not emailed):
+            # In-app is the guaranteed channel: it's the chosen one, or the
+            # safety net when email bounces or no address was given.
             execute(
                 "INSERT INTO digests (user_id, kind, subject, html, body_text, context_json)"
                 " VALUES (?, ?, ?, ?, ?, ?)",
                 (prefs["uid"], prefs["frequency"], subject, html, text,
                  json.dumps({"facts": facts, "prose": prose}, default=str)),
             )
-        if ok:
-            # The user's local date, not UTC's — the guard reads their clock.
-            execute(
-                "UPDATE notification_prefs SET last_sent_on = ? WHERE user_id = ?",
-                (local_now.strftime("%Y-%m-%d"), prefs["uid"]),
-            )
-            sent += 1
+        # The note was delivered one way or another, so the day is spent —
+        # marking it unconditionally is what stops an SMTP outage from
+        # re-composing (and re-inserting) a fresh copy every hour. The
+        # user's local date, not UTC's: the guard reads their clock.
+        execute(
+            "UPDATE notification_prefs SET last_sent_on = ? WHERE user_id = ?",
+            (local_now.strftime("%Y-%m-%d"), prefs["uid"]),
+        )
+        if wants_email and prefs["email"] and not emailed:
+            failed += 1  # delivered in-app, but the email leg needs looking at
         else:
-            failed += 1
+            sent += 1
     return {"sent": sent, "skipped": skipped, "failed": failed}

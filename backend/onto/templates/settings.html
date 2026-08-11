@@ -40,6 +40,13 @@
   <label>Around what hour
     <input name="send_hour" type="number" min="0" max="23" value="{{ prefs['send_hour'] }}">
   </label>
+  <label>Which day <small>(for the weekly note)</small>
+    <select name="send_dow">
+      {% for day in days %}
+      <option value="{{ loop.index0 }}" {% if prefs['send_dow'] == loop.index0 %}selected{% endif %}>{{ day }}</option>
+      {% endfor %}
+    </select>
+  </label>
   <p class="muted"><a href="{{ url_for('settings.digests') }}">Read past notes →</a></p>
 
   <input type="hidden" name="timezone" class="js-timezone" value="{{ timezone }}">
