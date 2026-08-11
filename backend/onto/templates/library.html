@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Things I want to do — Onto{% endblock %}
-{% block nav %}
-  <a href="{{ url_for('week.home') }}">This week</a>
-  <a href="{{ url_for('library.index') }}" class="active">Things I want to do</a>
-{% endblock %}
 {% block content %}
 <h1>Things I want to do</h1>
 <p class="muted">Add them once, use them every week. Drag them into a week from the week page.</p>

@@ -1,7 +1,8 @@
-{# Header count. Included inline on page render, and OOB from mutations. #}
+{# Header count + period score. Included inline on page render, and OOB from
+   mutations so every check-off updates it. #}
 <span id="week-progress" class="progress-badge" {% if oob %}hx-swap-oob="true"{% endif %}>
   {%- if progress.total -%}
-    {{ progress.done }} of {{ progress.total }} done
+    {{ progress.done }} of {{ progress.total }} done{% if score and score.possible %} · {{ score.percent }}%{% endif %}
   {%- else -%}
     nothing planned yet
   {%- endif -%}

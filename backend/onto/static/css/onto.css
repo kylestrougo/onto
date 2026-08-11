@@ -312,3 +312,18 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 .goal-row-meta { display: flex; align-items: center; gap: 0.45rem; margin-left: auto; flex-wrap: wrap; }
 .goal-row.is-retired { opacity: 0.65; }
 .inline-form { display: inline; }
+
+/* ── Recap ───────────────────────────────────────────────────────────── */
+.recap-score { display: flex; align-items: baseline; gap: 0.7rem; margin: 0.5rem 0 1rem; }
+.recap-big { font-size: 2.2rem; font-weight: 700; color: var(--accent); }
+.recap-pct { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); }
+.goal-row.recap-done .recap-pct { color: var(--accent); }
+
+/* ── Admin ───────────────────────────────────────────────────────────── */
+.tax-row { display: flex; gap: 0.4rem; align-items: center; flex: 1; flex-wrap: wrap; }
+.tax-row input { width: auto; flex: 1; min-width: 9rem; padding: 0.35rem 0.5rem; }
+.tax-row .btn-mini { flex: 0; }
+.tax-subs { margin-top: 0.6rem; }
+.weight-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-weight: 500; }
+.weight-row.weight-sub { padding-left: 1.2rem; color: var(--muted); }
+.weight-input { width: 6rem; padding: 0.3rem 0.45rem; }

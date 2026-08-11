@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Weights — Onto{% endblock %}
+{% block content %}
+<h1>Scoring weights</h1>
+<p class="muted">Points per completed goal, by category. The default is flat — every
+category worth 1 — so there's no built-in bias. These apply to everyone, which is
+what makes scores comparable between friends.</p>
+
+<form method="post" action="{{ url_for('admin.save_weights') }}">
+  {% for cat, subs in taxonomy %}
+  <div class="new-goal">
+    <label class="weight-row">
+      <strong>{{ cat['name'] }}</strong>
+      <input name="cat-{{ cat['id'] }}" type="number" step="0.1" min="0" max="100"
+             value="{{ cat['points'] }}" class="weight-input">
+    </label>
+    {% for sub in subs %}
+    <label class="weight-row weight-sub">
+      {{ sub['name'] }}
+      <input name="sub-{{ sub['id'] }}" type="number" step="0.1" min="0" max="100"
+             value="{{ sub['points'] if sub['points'] is not none }}"
+             placeholder="{{ cat['points'] }}" class="weight-input">
+    </label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <button type="submit">Save weights</button>
+</form>
+{% endblock %}

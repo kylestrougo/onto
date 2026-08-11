@@ -32,7 +32,7 @@
   </div>
 </li>
 {% if oob_progress %}
-  {% with progress = oob_progress, oob = True %}
+  {% with progress = oob_progress, score = oob_score, oob = True %}
     {% include "partials/_progress_badge.html" %}
   {% endwith %}
   {# The goal just left the library panel for this period. #}

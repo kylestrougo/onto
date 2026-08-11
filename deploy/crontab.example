@@ -18,5 +18,7 @@ FLASK=/home/io/onto/backend/.venv/bin/flask
 # a plain `cp` of a file being written is not.
 30 3 * * * /home/io/onto/deploy/backup.sh >> /home/io/onto/logs/backup.log 2>&1
 
-# Later phases add: rollover (hourly), ingest (6-hourly), verify-events
-# (nightly), research (2x weekly), match (nightly), send-digests (hourly).
+# Materialise recurring goals into each user's new week/month. Hourly and
+# dumb on purpose: the command checks each user's own timezone and does
+# nothing unless their week or month actually turned over.
+5 * * * * cd $ONTO && $FLASK rollover >> /home/io/onto/logs/rollover.log 2>&1

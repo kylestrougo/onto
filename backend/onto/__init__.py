@@ -26,7 +26,7 @@ def create_app(config_object=Config) -> Flask:
     )
 
     from . import auth, cli, db, disclosure
-    from .views import library, week
+    from .views import admin, library, month, week
 
     db.init_app(app)
     cli.init_app(app)
@@ -34,6 +34,8 @@ def create_app(config_object=Config) -> Flask:
     disclosure.init_app(app)
     app.register_blueprint(week.bp)
     app.register_blueprint(library.bp)
+    app.register_blueprint(month.bp)
+    app.register_blueprint(admin.bp)
 
     @app.get("/healthz")
     def healthz():

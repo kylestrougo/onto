@@ -2,6 +2,6 @@
 {% if goal and not goal['retired_at'] %}
   {% with oob = True %}{% include "partials/_goal_chip.html" %}{% endwith %}
 {% endif %}
-{% with progress = oob_progress, oob = True %}
+{% with progress = oob_progress, score = oob_score, oob = True %}
   {% include "partials/_progress_badge.html" %}
 {% endwith %}

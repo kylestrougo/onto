@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Taxonomy — Onto{% endblock %}
+{% block content %}
+<h1>Categories &amp; subcategories</h1>
+<p class="muted">Users pick from this list; they can't add their own. Every entry
+needs search terms so event discovery knows what to look for.</p>
+
+{% for cat, subs in taxonomy %}
+<details class="new-goal" {% if not cat['retired'] %}open{% endif %}>
+  <summary>{{ cat['name'] }}{% if cat['retired'] %} <em class="muted">(retired)</em>{% endif %}</summary>
+
+  <form method="post" action="{{ url_for('admin.edit_category', cat_id=cat['id']) }}" class="tax-row">
+    <input type="hidden" name="action" value="rename">
+    <input name="name" value="{{ cat['name'] }}" aria-label="Category name">
+    <input name="search_terms" value="{{ loads(cat['search_terms_json']) | join(', ') }}"
+           aria-label="Search terms" placeholder="search terms, comma separated">
+    <button class="btn-mini" type="submit">Save</button>
+  </form>
+  <form method="post" action="{{ url_for('admin.edit_category', cat_id=cat['id']) }}" class="inline-form">
+    <input type="hidden" name="action" value="{{ 'unretire' if cat['retired'] else 'retire' }}">
+    <button class="btn-mini" type="submit">{{ 'Bring back' if cat['retired'] else 'Retire' }}</button>
+  </form>
+
+  <ul class="goal-rows tax-subs">
+    {% for sub in subs %}
+    <li class="goal-row {% if sub['retired'] %}is-retired{% endif %}">
+      <form method="post" action="{{ url_for('admin.edit_subcategory', sub_id=sub['id']) }}" class="tax-row">
+        <input type="hidden" name="action" value="rename">
+        <input name="name" value="{{ sub['name'] }}" aria-label="Subcategory name">
+        <input name="search_terms" value="{{ loads(sub['search_terms_json']) | join(', ') }}"
+               aria-label="Search terms" placeholder="search terms, comma separated">
+        <button class="btn-mini" type="submit">Save</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.edit_subcategory', sub_id=sub['id']) }}" class="inline-form">
+        <input type="hidden" name="action" value="{{ 'unretire' if sub['retired'] else 'retire' }}">
+        <button class="btn-mini" type="submit">{{ 'Bring back' if sub['retired'] else 'Retire' }}</button>
+      </form>
+    </li>
+    {% endfor %}
+    <li class="goal-row">
+      <form method="post" action="{{ url_for('admin.add_subcategory') }}" class="tax-row">
+        <input type="hidden" name="category_id" value="{{ cat['id'] }}">
+        <input name="name" placeholder="New subcategory" required>
+        <input name="search_terms" placeholder="search terms (required)" required>
+        <button class="btn-mini btn-go" type="submit">Add</button>
+      </form>
+    </li>
+  </ul>
+</details>
+{% endfor %}
+
+<h2>New category</h2>
+<form method="post" action="{{ url_for('admin.add_category') }}" class="goal-form">
+  <label>Name <input name="name" required></label>
+  <label>One-line example shown to users <input name="example" placeholder="e.g. Volunteer once this month"></label>
+  <label>Search terms <small>(comma separated — required)</small>
+    <input name="search_terms" required placeholder="volunteering, community event"></label>
+  <button type="submit">Add category</button>
+</form>
+{% endblock %}

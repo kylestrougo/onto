@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}How it went — Onto{% endblock %}
+{% block content %}
+<h1>{{ label }} — how it went</h1>
+
+{% if score.rows %}
+<div class="recap-score">
+  <span class="recap-big">{{ score.percent }}%</span>
+  <span class="muted">{{ score.earned }} of {{ score.possible }} points</span>
+</div>
+
+<ul class="goal-rows">
+  {% for row in score.rows %}
+  {% set f = fraction(row) %}
+  <li class="goal-row {% if f >= 1 %}recap-done{% endif %}">
+    <div class="goal-row-main">
+      <strong>{{ row['title'] }}</strong>
+      <span class="tag tag-{{ row['category_slug'] }}">{{ row['subcategory_name'] or row['category_name'] }}</span>
+      {% if row['kind'] in ('countable', 'open') %}
+        <span class="muted">{{ row['logged'] }} of {{ row['target'] }}</span>
+      {% elif row['kind'] == 'deadline' and row['completed_at'] and f == 0 %}
+        <span class="muted">finished, but after {{ row['due_date'] }}</span>
+      {% endif %}
+    </div>
+    <span class="recap-pct">{{ (100 * f) | round | int }}%</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">Nothing was planned for this {{ period_kind }}.</p>
+{% endif %}
+
+{% block recap_extra %}{% endblock %}
+{% endblock %}

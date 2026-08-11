@@ -3,14 +3,14 @@
 htmx pattern: every mutating endpoint returns the commitment card partial
 (the server-rendered card is the source of truth, never the dragged DOM
 clone) plus hx-swap-oob fragments for anything else the change touched —
-the header progress badge, and the library chip appearing/disappearing.
+the header progress/score badge, and the library chip appearing/disappearing.
 """
 from __future__ import annotations
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from .. import commitments, disclosure, goals, periods
+from .. import commitments, disclosure, goals, periods, scoring
 
 bp = Blueprint("week", __name__)
 
@@ -35,12 +35,14 @@ def show(key: str):
         key=key,
         label=periods.label("week", key),
         is_current=(key == current),
+        is_past=(key < current),
         prev_key=periods.shift("week", key, -1),
         next_key=periods.shift("week", key, 1),
         current_key=current,
         commitments=commitments.for_period(current_user.id, "week", key),
         available=commitments.uncommitted_goals(current_user.id, "week", key),
         progress=commitments.progress(current_user.id, "week", key),
+        score=scoring.period_score(current_user.id, "week", key),
     )
 
 
@@ -54,6 +56,7 @@ def _card(commitment_id: int, key: str, period_kind: str = "week", oob: bool = T
         key=key,
         period_kind=period_kind,
         oob_progress=commitments.progress(current_user.id, period_kind, key) if oob else None,
+        oob_score=scoring.period_score(current_user.id, period_kind, key) if oob else None,
     )
 
 
@@ -129,4 +132,22 @@ def remove(cid: int):
         key=c["period_key"],
         period_kind=c["period_kind"],
         oob_progress=commitments.progress(current_user.id, c["period_kind"], c["period_key"]),
+        oob_score=scoring.period_score(current_user.id, c["period_kind"], c["period_key"]),
+    )
+
+
+@bp.get("/recap/<kind>/<key>")
+@login_required
+def recap(kind: str, key: str):
+    """End-of-period view (spec 4.6, 5.4): what was planned, what happened."""
+    if kind not in ("week", "month") or not periods.valid_key(kind, key):
+        abort(404)
+    score = scoring.period_score(current_user.id, kind, key)
+    return render_template(
+        "recap.html",
+        period_kind=kind,
+        key=key,
+        label=periods.label(kind, key),
+        score=score,
+        fraction=scoring.fraction,
     )

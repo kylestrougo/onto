@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% block title %}This week — Onto{% endblock %}
-{% block nav %}
-  <a href="{{ url_for('week.home') }}" class="active">This week</a>
-  <a href="{{ url_for('library.index') }}">Things I want to do</a>
-{% endblock %}
 {% block content %}
 <div class="week-head">
   <a class="week-nav" href="{{ url_for('week.show', key=prev_key) }}" aria-label="Previous week">&larr;</a>
@@ -12,6 +8,7 @@
     <div class="week-sub">
       {% if is_current %}{{ label }}{% else %}<a href="{{ url_for('week.show', key=current_key) }}">Back to this week</a>{% endif %}
       {% include "partials/_progress_badge.html" %}
+      {% if is_past %}<a href="{{ url_for('week.recap', kind='week', key=key) }}">How it went</a>{% endif %}
     </div>
   </div>
   <a class="week-nav" href="{{ url_for('week.show', key=next_key) }}" aria-label="Next week">&rarr;</a>

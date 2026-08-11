@@ -7,7 +7,8 @@
   <span class="chip-meta">
     {{ goal['category_name'] }}{% if goal['kind'] == 'countable' and goal['default_target'] %} · {{ goal['default_target'] }}×{% endif %}{% if goal['recurring'] %} · every week{% endif %}
   </span>
-  <button class="btn-mini btn-go chip-add" hx-post="{{ url_for('week.add', key=key) }}"
+  <button class="btn-mini btn-go chip-add"
+          hx-post="{{ url_for('week.add', key=key) if period_kind == 'week' else url_for('month.add', key=key) }}"
           hx-vals='{"goal_id": {{ goal['id'] }}}'
           hx-target="#commit-list" hx-swap="beforeend">+ Add</button>
 </li>

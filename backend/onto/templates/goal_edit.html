@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Edit — Onto{% endblock %}
-{% block nav %}
-  <a href="{{ url_for('week.home') }}">This week</a>
-  <a href="{{ url_for('library.index') }}" class="active">Things I want to do</a>
-{% endblock %}
 {% block content %}
 <h1>Edit "{{ goal['title'] }}"</h1>
 <form method="post" action="{{ url_for('library.edit', goal_id=goal['id']) }}" class="goal-form">
