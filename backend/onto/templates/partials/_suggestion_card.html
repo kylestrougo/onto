@@ -1,0 +1,32 @@
+{# One matched event. Everything factual comes from the DB row; the card is
+   always a click through to its source (spec 10.5). #}
+<li class="commit-card suggestion-card">
+  <div class="commit-main">
+    <a href="{{ card.s['event_url'] }}" target="_blank" rel="noopener" class="suggestion-title">
+      {{ card.s['event_title'] }}</a>
+    <span class="muted">
+      {{ card.s['starts_at'][:10] }}{% if card.s['starts_at'][11:16] != '00:00' %} · {{ card.s['starts_at'][11:16] }}{% endif %}
+      {% if card.s['venue_name'] %} · {{ card.s['venue_name'] }}{% endif %}
+      {% if card.s['borough'] %} · {{ card.s['borough'] }}{% endif %}
+      {% if card.s['is_free'] %} · free{% elif card.s['cost_cents'] %} · ${{ '%.0f' % (card.s['cost_cents'] / 100) }}{% endif %}
+    </span>
+    <span class="muted suggestion-reason">
+      {{ card.s['reason'] }}{% if card.companions %} · for you and {{ card.companions | join(', ') }}{% endif %}
+      · from {{ card.s['source_name'] }}
+    </span>
+  </div>
+  <div class="commit-actions">
+    <form method="post" action="{{ url_for('discover.accept', sid=card.s['id']) }}" class="inline-form">
+      <input type="hidden" name="back" value="{{ request.path }}">
+      <button class="btn-mini btn-go" type="submit">I'll go</button>
+    </form>
+    <form method="post" action="{{ url_for('discover.dismiss', sid=card.s['id']) }}" class="inline-form">
+      <input type="hidden" name="back" value="{{ request.path }}">
+      <button class="btn-mini" type="submit">Not for me</button>
+    </form>
+    <form method="post" action="{{ url_for('discover.flag', sid=card.s['id']) }}" class="inline-form">
+      <input type="hidden" name="back" value="{{ request.path }}">
+      <button class="btn-mini btn-x" type="submit" title="Wrong or dead link">⚑</button>
+    </form>
+  </div>
+</li>

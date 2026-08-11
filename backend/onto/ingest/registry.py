@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from .adapters.ics_feed import IcsFeedAdapter
 from .adapters.jsonld_feed import JsonLdFeedAdapter
+from .adapters.llm_research import LlmResearchAdapter
 from .adapters.nyc_open_data import NycOpenDataAdapter
 
 _ADAPTERS = {
     "nyc_open_data": NycOpenDataAdapter,
     "ics": IcsFeedAdapter,
     "jsonld": JsonLdFeedAdapter,
+    "llm_research": LlmResearchAdapter,
 }
 
 

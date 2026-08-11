@@ -376,3 +376,11 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 .photo-label { cursor: pointer; opacity: 0.55; margin: 0; display: inline; font-weight: normal; }
 .photo-label:hover { opacity: 1; }
 .photo-input { display: none; }
+
+/* ── Discovery ───────────────────────────────────────────────────────── */
+.suggestion-card { background: #fbf6ec; }
+.suggestion-title { font-weight: 600; text-decoration: none; }
+.suggestion-title:hover { text-decoration: underline; }
+.suggestion-reason { font-size: 0.8rem; width: 100%; }
+.event-link { font-size: 0.85rem; text-decoration: none; }
+.event-link:hover { text-decoration: underline; }

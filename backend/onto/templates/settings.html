@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Settings — Onto{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<form method="post" action="{{ url_for('settings.save') }}" class="goal-form">
+  <label>Where should we look for events?</label>
+  {% for b in boroughs %}
+  <label class="check-row">
+    <input type="checkbox" name="boroughs" value="{{ b }}" {% if b in chosen %}checked{% endif %}>
+    {{ b }}
+  </label>
+  {% endfor %}
+  <small>No boroughs picked means all of them.</small>
+
+  <label class="check-row" style="margin-top: 1rem">
+    <input type="checkbox" name="show_everything" value="1" {% if show_everything %}checked{% endif %}>
+    Show every feature now (skip the gradual reveal)
+  </label>
+
+  <input type="hidden" name="timezone" class="js-timezone" value="{{ timezone }}">
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

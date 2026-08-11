@@ -44,7 +44,19 @@ def show(key: str):
         progress=commitments.progress(current_user.id, "week", key),
         score=scoring.period_score(current_user.id, "week", key),
         mix_rows=mix.bar_data(current_user.id, "week", key),
+        suggestion_cards=_suggestion_cards(key, current),
     )
+
+
+def _suggestion_cards(key: str, current: str):
+    if key != current:
+        return []
+    from ..discovery import suggestions as sugg
+
+    return [
+        {"s": row, "companions": sugg.group_companions(row)}
+        for row in sugg.pending_for(current_user.id, limit=3)
+    ]
 
 
 def _card(commitment_id: int, key: str, period_kind: str = "week", oob: bool = True):

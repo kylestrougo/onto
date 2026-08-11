@@ -257,3 +257,50 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_status_start ON events(status, starts_at);
 CREATE INDEX IF NOT EXISTS idx_events_cat_start ON events(category_id, starts_at);
 CREATE INDEX IF NOT EXISTS idx_events_dedupe ON events(dedupe_key);
+
+-- ── Discovery: suggestions, flags, model stats (specs 8, 10) ─────────────
+
+CREATE TABLE IF NOT EXISTS suggestions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    event_id INTEGER NOT NULL REFERENCES events(id),
+    -- The goal this event matched; accepting attaches the event to it.
+    goal_id INTEGER REFERENCES goals(id),
+    commitment_id INTEGER,
+    -- Shared-goal suggestions carry the same group_key across members, so
+    -- the card can say "for you and Alex" (spec 8.6).
+    group_key TEXT,
+    score REAL NOT NULL DEFAULT 0,
+    -- Template-built, never LLM: "matches 'See some live music'".
+    reason TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'seen', 'accepted', 'dismissed', 'flagged', 'expired')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    decided_at TEXT,
+    -- Dismissed stays dismissed: the UNIQUE stops re-suggesting forever.
+    UNIQUE (user_id, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_suggestions_user ON suggestions(user_id, status);
+
+-- Users flagging wrong suggestions (spec 10.6). Distinct users trip source
+-- quarantine.
+CREATE TABLE IF NOT EXISTS event_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    event_id INTEGER NOT NULL REFERENCES events(id),
+    reason TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_id, event_id)
+);
+
+-- One row per LLM attempt; the admin's answer to "is it us or the provider".
+CREATE TABLE IF NOT EXISTS model_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model TEXT NOT NULL,
+    intent TEXT NOT NULL,
+    ok INTEGER NOT NULL,
+    latency_ms INTEGER,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_model_stats_created ON model_stats(created_at);

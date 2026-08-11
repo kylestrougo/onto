@@ -31,3 +31,12 @@ FLASK=/home/io/onto/backend/.venv/bin/flask
 # Expire past events and re-check the stalest source URLs, so nothing is
 # ever suggested from a dead link or the past.
 45 2 * * * cd $ONTO && $FLASK verify-events >> /home/io/onto/logs/verify.log 2>&1
+
+# Tier-3 LLM research through SearXNG. Twice a week at a quiet hour: it
+# costs free-tier LLM calls and its yield is validated hard (URL must
+# answer 200, date must be future) before anything enters the corpus.
+20 5 * * 2,5 cd $ONTO && $FLASK research >> /home/io/onto/logs/research.log 2>&1
+
+# Match corpus events to people's discovery-enabled goals. Nightly; the
+# per-user weekly suggestion cap keeps the app quiet by default.
+40 5 * * * cd $ONTO && $FLASK match >> /home/io/onto/logs/match.log 2>&1

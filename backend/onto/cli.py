@@ -30,7 +30,13 @@ def housekeeping() -> None:
         " AND COALESCE(ends_at, starts_at) < datetime('now', '-30 days')"
     )
     db.commit()
-    click.echo(f"housekeeping: pruned {n} counters, {cur.rowcount} stale events")
+    from .discovery import suggestions as sugg
+
+    expired = sugg.expire_stale()
+    click.echo(
+        f"housekeeping: pruned {n} counters, {cur.rowcount} stale events,"
+        f" expired {expired} suggestions"
+    )
 
 
 def _table_exists(db, name: str) -> bool:
@@ -49,7 +55,7 @@ def ingest_cmd(source_name: str | None) -> None:
     re-running updates rather than duplicates."""
     from .ingest import base as ingest_base
 
-    where = "enabled = 1 AND quarantined_at IS NULL"
+    where = "enabled = 1 AND quarantined_at IS NULL AND kind != 'llm_research'"
     args: tuple = ()
     if source_name:
         where += " AND name = ?"
@@ -74,6 +80,46 @@ def verify_events_cmd(limit: int) -> None:
     result = verify.verify_batch(limit)
     click.echo(f"verify-events: expired {expired}, checked {result['checked']},"
                f" ok {result['ok']}, bad {result['bad']}")
+
+
+@click.command("research")
+@with_appcontext
+def research_cmd() -> None:
+    """Tier-3 LLM research via SearXNG (twice weekly, city-wide, one shared
+    corpus — spec 8.3). Creates its default source row on first run so the
+    quarantine machinery covers it like any other source."""
+    from flask import current_app
+
+    if not current_app.config["SEARXNG_URL"]:
+        click.echo("research: ONTO_SEARXNG_URL not set; skipping")
+        return
+    execute(
+        "INSERT OR IGNORE INTO sources (name, kind, tier, config_json)"
+        " VALUES ('LLM research', 'llm_research', 3, '{}')"
+    )
+    from .ingest import base as ingest_base
+
+    sources = query(
+        "SELECT * FROM sources WHERE kind = 'llm_research' AND enabled = 1"
+        " AND quarantined_at IS NULL"
+    )
+    if not sources:
+        click.echo("research: the research source is disabled or quarantined")
+        return
+    for source in sources:
+        counts = ingest_base.run_source(source)
+        click.echo(f"research: {source['name']}: {counts}")
+
+
+@click.command("match")
+@with_appcontext
+def match_cmd() -> None:
+    """Nightly: match corpus events to users' discovery-enabled goals
+    (spec 8.5). Due-gated by the per-user weekly suggestion cap."""
+    from .discovery import matching
+
+    made = matching.run_all()
+    click.echo(f"match: created {made} suggestions")
 
 
 def _materialize(user_id: int, period_kind: str, key: str) -> int:
@@ -150,3 +196,5 @@ def init_app(app) -> None:
     app.cli.add_command(rollover)
     app.cli.add_command(ingest_cmd)
     app.cli.add_command(verify_events_cmd)
+    app.cli.add_command(research_cmd)
+    app.cli.add_command(match_cmd)

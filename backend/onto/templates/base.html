@@ -22,6 +22,8 @@
       {% endif %}
       <a href="{{ url_for('library.index') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('library.') }}">Things I want to do</a>
+      <a href="{{ url_for('discover.index') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('discover.') }}">For you</a>
       {% if unlocked('social') %}
       <a href="{{ url_for('social.show_feed') }}"
          class="{{ 'active' if request.endpoint == 'social.show_feed' }}">Feed</a>
@@ -36,6 +38,7 @@
       <a href="{{ url_for('admin.index') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.') }}">Admin</a>
       {% endif %}
+      <a href="{{ url_for('settings.edit') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('settings.') }}">Settings</a>
       <form class="nav-logout" method="post" action="{{ url_for('auth.logout') }}">
         <button class="linklike" type="submit">Sign out</button>
       </form>

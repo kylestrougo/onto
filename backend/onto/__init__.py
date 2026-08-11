@@ -26,7 +26,8 @@ def create_app(config_object=Config) -> Flask:
     )
 
     from . import auth, cli, db, disclosure
-    from .views import admin, library, mix as mix_view, month, social_views, week
+    from .views import (admin, discover, library, mix as mix_view, month,
+                        settings as settings_view, social_views, week)
 
     db.init_app(app)
     cli.init_app(app)
@@ -38,6 +39,8 @@ def create_app(config_object=Config) -> Flask:
     app.register_blueprint(admin.bp)
     app.register_blueprint(mix_view.bp)
     app.register_blueprint(social_views.bp)
+    app.register_blueprint(discover.bp)
+    app.register_blueprint(settings_view.bp)
 
     @app.get("/healthz")
     def healthz():

@@ -41,6 +41,21 @@
   <a class="btn btn-quiet" href="{{ url_for('library.index') }}">Cancel</a>
 </form>
 
+<h2>Find me events</h2>
+<form method="post" action="{{ url_for('discover.toggle', goal_id=goal['id']) }}" class="inline-form">
+  <p class="muted">
+    {% if goal['discovery_enabled'] %}
+      We look for real nearby events that fit this goal and suggest them.
+    {% else %}
+      Off. Turn it on for goals you'd leave the house for — "run a 5K" wants
+      suggestions, "call Mom" doesn't.
+    {% endif %}
+  </p>
+  <button type="submit" class="btn {{ 'btn-quiet' if goal['discovery_enabled'] }}">
+    {{ 'Stop suggesting events' if goal['discovery_enabled'] else 'Suggest events for this' }}
+  </button>
+</form>
+
 {% if unlocked('social') %}
 <h2>Who can see it</h2>
 <form method="post" action="{{ url_for('social.set_visibility', goal_id=goal['id']) }}" class="goal-form">

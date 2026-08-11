@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}For you — Onto{% endblock %}
+{% block content %}
+<h1>Happening near you</h1>
+<p class="muted">Real events nearby that fit things you said you wanted to do.
+Every one links to where it came from.</p>
+
+{% if cards %}
+<ul class="commit-list">
+  {% for card in cards %}
+    {% include "partials/_suggestion_card.html" %}
+  {% endfor %}
+</ul>
+{% elif has_discovery_goals %}
+<p class="empty-hint">Nothing matched yet — new events come in every few hours.
+Adding boroughs in <a href="{{ url_for('settings.edit') }}">settings</a> helps.</p>
+{% else %}
+<p class="empty-hint">Turn on "find me events" for a goal you'd leave the house
+for — edit one in <a href="{{ url_for('library.index') }}">your list</a> and
+flip the toggle. Some goals want suggestions ("run a 5K"); some don't
+("call Mom").</p>
+{% endif %}
+{% endblock %}
