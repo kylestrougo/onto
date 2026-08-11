@@ -178,12 +178,16 @@ fi
 mkdir -p "$REPO/logs" "$REPO/uploads" "$REPO/backups"
 
 # ── choose the port ─────────────────────────────────────────────────────
-say "Port"
+say "Address"
 port_busy() { ss -tln 2>/dev/null | grep -qE "[:.]$1\b"; }
 ONTO_PORT=""
+ONTO_BIND=""
 if [ -f /etc/systemd/system/onto.service ]; then
-  ONTO_PORT="$(grep -oE -- '--listen=127\.0\.0\.1:[0-9]+' /etc/systemd/system/onto.service | grep -oE '[0-9]+$' || true)"
-  [ -z "$ONTO_PORT" ] || ok "keeping the installed service's port: $ONTO_PORT"
+  LISTEN="$(grep -oE -- '--listen=[0-9.]+:[0-9]+' /etc/systemd/system/onto.service | head -1 || true)"
+  if [ -n "$LISTEN" ]; then
+    ONTO_BIND="${LISTEN#--listen=}"; ONTO_PORT="${ONTO_BIND##*:}"; ONTO_BIND="${ONTO_BIND%:*}"
+    ok "keeping the installed service's address: $ONTO_BIND:$ONTO_PORT"
+  fi
 fi
 if [ -z "$ONTO_PORT" ]; then
   if port_busy 5000; then
@@ -197,7 +201,14 @@ if [ -z "$ONTO_PORT" ]; then
   else
     ONTO_PORT=5000
   fi
-  ok "Onto will listen on 127.0.0.1:$ONTO_PORT"
+  # 0.0.0.0 = phones and laptops on your wifi can open it directly (plain
+  # http until you add Tailscale/HTTPS). 127.0.0.1 = only via a tunnel.
+  if yes_no "Should other devices on your home network reach Onto directly (phones, laptops)?" y; then
+    ONTO_BIND="0.0.0.0"
+  else
+    ONTO_BIND="127.0.0.1"
+  fi
+  ok "Onto will listen on $ONTO_BIND:$ONTO_PORT"
 fi
 
 # ── 5. database ─────────────────────────────────────────────────────────
@@ -230,7 +241,7 @@ UNIT_TMP="$(mktemp)"
 sed -e "s|/home/io/onto|$REPO|g" \
     -e "s|^User=.*|User=$(whoami)|" \
     -e "s|^Group=.*|Group=$(id -gn)|" \
-    -e "s|127\.0\.0\.1:5000|127.0.0.1:$ONTO_PORT|" \
+    -e "s|127\.0\.0\.1:5000|$ONTO_BIND:$ONTO_PORT|" \
     "$REPO/deploy/onto.service" > "$UNIT_TMP"
 sudo cp "$UNIT_TMP" /etc/systemd/system/onto.service
 rm -f "$UNIT_TMP"
@@ -276,7 +287,9 @@ say "Done"
 ADMIN_NAME="$(grep -E '^ONTO_ADMIN_USERNAME=' "$ENV_FILE" | cut -d= -f2-)"
 cat <<EOF
 
-Onto is running at http://127.0.0.1:$ONTO_PORT
+Onto is running at http://127.0.0.1:$ONTO_PORT$(
+  [ "$ONTO_BIND" = "0.0.0.0" ] && printf '%s' " — and on your network at http://$(hostname -I 2>/dev/null | awk '{print $1}'):$ONTO_PORT"
+)
 
 Next steps, in order:
   1. Open it and SIGN UP as '$ADMIN_NAME' — the first signup with that
