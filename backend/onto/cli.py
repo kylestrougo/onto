@@ -122,6 +122,20 @@ def match_cmd() -> None:
     click.echo(f"match: created {made} suggestions")
 
 
+@click.command("send-digests")
+@with_appcontext
+def send_digests_cmd() -> None:
+    """Hourly: send the weekly/daily notes that are due, per user, on the
+    user's own clock. A missed run catches up next hour."""
+    from .notify import send
+
+    result = send.send_due_digests()
+    click.echo(
+        f"send-digests: sent {result['sent']}, skipped {result['skipped']},"
+        f" failed {result['failed']}"
+    )
+
+
 def _materialize(user_id: int, period_kind: str, key: str) -> int:
     """Create this period's commitments for one user's recurring goals.
     INSERT OR IGNORE + the UNIQUE constraint make this safe to re-run."""
@@ -198,3 +212,4 @@ def init_app(app) -> None:
     app.cli.add_command(verify_events_cmd)
     app.cli.add_command(research_cmd)
     app.cli.add_command(match_cmd)
+    app.cli.add_command(send_digests_cmd)

@@ -17,6 +17,31 @@
     Show every feature now (skip the gradual reveal)
   </label>
 
+  <h2>Your weekly note</h2>
+  <p class="muted">A short recap and a few things happening near you.
+  One a week unless you say otherwise.</p>
+  <label>How often
+    <select name="frequency">
+      <option value="weekly" {% if prefs['frequency'] == 'weekly' %}selected{% endif %}>Once a week</option>
+      <option value="daily" {% if prefs['frequency'] == 'daily' %}selected{% endif %}>Every day</option>
+      <option value="off" {% if prefs['frequency'] == 'off' %}selected{% endif %}>Never</option>
+    </select>
+  </label>
+  <label>Where
+    <select name="channel">
+      <option value="inapp" {% if prefs['channel'] == 'inapp' %}selected{% endif %}>In the app</option>
+      <option value="email" {% if prefs['channel'] == 'email' %}selected{% endif %}>Email</option>
+      <option value="both" {% if prefs['channel'] == 'both' %}selected{% endif %}>Both</option>
+    </select>
+  </label>
+  <label>Email address <small>(only needed for email notes)</small>
+    <input name="email" type="email" value="{{ prefs['email'] }}" placeholder="you@example.com">
+  </label>
+  <label>Around what hour
+    <input name="send_hour" type="number" min="0" max="23" value="{{ prefs['send_hour'] }}">
+  </label>
+  <p class="muted"><a href="{{ url_for('settings.digests') }}">Read past notes →</a></p>
+
   <input type="hidden" name="timezone" class="js-timezone" value="{{ timezone }}">
   <button type="submit">Save</button>
 </form>

@@ -40,3 +40,8 @@ FLASK=/home/io/onto/backend/.venv/bin/flask
 # Match corpus events to people's discovery-enabled goals. Nightly; the
 # per-user weekly suggestion cap keeps the app quiet by default.
 40 5 * * * cd $ONTO && $FLASK match >> /home/io/onto/logs/match.log 2>&1
+
+# The weekly/daily notes. Hourly and dumb: the command decides who is due
+# from each user's frequency, hour, and timezone, and last_sent_on stops
+# double-sends. Email dry-run config makes this safe on a first deploy.
+0 * * * * cd $ONTO && $FLASK send-digests >> /home/io/onto/logs/digests.log 2>&1

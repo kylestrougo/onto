@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Unsubscribed — Onto{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1 class="brand-big">onto</h1>
+  {% if found %}
+  <p>Done — no more notes. You can turn them back on any time in settings.</p>
+  {% else %}
+  <p>That link didn't match anything, so nothing changed.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Your notes — Onto{% endblock %}
+{% block content %}
+<h1>Your notes</h1>
+{% if digests %}
+  {% for d in digests %}
+  <details class="new-goal" {% if loop.first %}open{% endif %}>
+    <summary>{{ d['subject'] }} <small class="muted">{{ d['created_at'][:10] }}</small></summary>
+    <div class="digest-body">{{ d['html'] | safe }}</div>
+  </details>
+  {% endfor %}
+{% else %}
+<p class="muted">Nothing yet — your first note arrives at the start of next week.
+You can change how often in <a href="{{ url_for('settings.edit') }}">settings</a>.</p>
+{% endif %}
+{% endblock %}

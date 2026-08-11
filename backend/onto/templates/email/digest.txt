@@ -1,0 +1,19 @@
+Your week — {{ facts.week_label }}
+
+{% if prose.opening %}{{ prose.opening }}
+
+{% endif %}{% if facts.commitments %}Where things stand:
+{% for c in facts.commitments %}  {% if c.completed_at %}[x]{% else %}[ ]{% endif %} {{ c.title }}{% if c.target and c.target > 1 %} ({{ c.logged }}/{{ c.target }}){% endif %}
+{% endfor %}
+Score so far: {{ facts.score.earned }} of {{ facts.score.possible }} points.
+
+{% endif %}{% if picks %}Happening near you:
+{% for p in picks %}  * {{ p.event['event_title'] }} — {{ p.event['starts_at'][:10] }}{% if p.event['venue_name'] %}, {{ p.event['venue_name'] }}{% endif %}{% if p.event['borough'] %}, {{ p.event['borough'] }}{% endif %}{% if p.event['is_free'] %}, free{% endif %}
+    {{ p.event['event_url'] }}
+{% endfor %}
+{% endif %}{% if facts.friends %}Your people:
+{% for f in facts.friends %}  {{ f.username }} did "{{ f.title }}"
+{% endfor %}
+{% endif %}{% if prose.closing %}{{ prose.closing }}
+
+{% endif %}Open your week: {{ public_url }}/

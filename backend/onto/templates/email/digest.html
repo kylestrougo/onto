@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<body style="font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #26221c; background: #faf8f4; padding: 20px; margin: 0;">
+  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e6e0d6; border-radius: 10px; padding: 22px 26px;">
+    <h1 style="font-size: 20px; margin: 0 0 4px;">Your week</h1>
+    <p style="color: #7a736a; margin: 0 0 14px;">{{ facts.week_label }}</p>
+
+    {% if prose.opening %}<p>{{ prose.opening }}</p>{% endif %}
+
+    {% if facts.commitments %}
+    <h2 style="font-size: 15px; margin: 18px 0 6px;">Where things stand</h2>
+    <ul style="padding-left: 18px; margin: 0;">
+      {% for c in facts.commitments %}
+      <li style="margin-bottom: 4px;">
+        {% if c.completed_at %}✓{% else %}·{% endif %} {{ c.title }}
+        {% if c.target and c.target > 1 %}({{ c.logged }}/{{ c.target }}){% endif %}
+        {% if notes_by_commitment.get(c.id) %}
+          <br><span style="color: #7a736a;">{{ notes_by_commitment[c.id] }}</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    <p style="color: #7a736a; margin: 8px 0 0;">Score so far: {{ facts.score.earned }} of {{ facts.score.possible }} points.</p>
+    {% endif %}
+
+    {% if picks %}
+    <h2 style="font-size: 15px; margin: 18px 0 6px;">Happening near you</h2>
+    {# Every fact below prints from the database record (spec 10.3); each
+       card links to its source (10.5). #}
+    {% for p in picks %}
+    <div style="border: 1px solid #e6e0d6; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
+      <a href="{{ p.event['event_url'] }}" style="font-weight: 600; color: #2f6f4f;">{{ p.event['event_title'] }}</a><br>
+      <span style="color: #7a736a; font-size: 13px;">
+        {{ p.event['starts_at'][:10] }}{% if p.event['starts_at'][11:16] != '00:00' %} · {{ p.event['starts_at'][11:16] }}{% endif %}
+        {% if p.event['venue_name'] %} · {{ p.event['venue_name'] }}{% endif %}
+        {% if p.event['borough'] %} · {{ p.event['borough'] }}{% endif %}
+        {% if p.event['is_free'] %} · free{% elif p.event['cost_cents'] %} · ${{ '%.0f' % (p.event['cost_cents'] / 100) }}{% endif %}
+        · from {{ p.event['source_name'] }}
+      </span>
+      {% if p.why %}<br><span style="font-size: 13px;">{{ p.why }}</span>{% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if facts.friends %}
+    <h2 style="font-size: 15px; margin: 18px 0 6px;">Your people</h2>
+    <ul style="padding-left: 18px; margin: 0;">
+      {% for f in facts.friends %}
+      <li>{{ f.username }} did "{{ f.title }}"</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if prose.closing %}<p style="margin-top: 16px;">{{ prose.closing }}</p>{% endif %}
+
+    <p style="margin-top: 20px;"><a href="{{ public_url }}/" style="color: #2f6f4f;">Open your week →</a></p>
+    <p style="color: #b5aea3; font-size: 12px; margin-top: 18px;">
+      <a href="{{ public_url }}/unsub/{{ unsub_token or '' }}" style="color: #b5aea3;">Stop these notes</a>
+    </p>
+  </div>
+</body>
+</html>

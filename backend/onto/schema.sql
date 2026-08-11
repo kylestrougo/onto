@@ -304,3 +304,35 @@ CREATE TABLE IF NOT EXISTS model_stats (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_model_stats_created ON model_stats(created_at);
+
+-- ── Notifications (spec 9) ───────────────────────────────────────────────
+-- Defaults are the spec 11.5 quiet ones: one weekly note, in-app, Monday 9am.
+-- Email needs an address (accounts are username-only) and an explicit choice.
+CREATE TABLE IF NOT EXISTS notification_prefs (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    frequency TEXT NOT NULL DEFAULT 'weekly' CHECK (frequency IN ('off', 'weekly', 'daily')),
+    channel TEXT NOT NULL DEFAULT 'inapp' CHECK (channel IN ('email', 'inapp', 'both')),
+    email TEXT NOT NULL DEFAULT '',
+    send_hour INTEGER NOT NULL DEFAULT 9,
+    -- For weekly frequency: 0 = Monday.
+    send_dow INTEGER NOT NULL DEFAULT 0,
+    -- The user's LOCAL date of the last send — 23:00 in New York is
+    -- tomorrow in UTC, and the double-send guard must read their clock.
+    last_sent_on TEXT NOT NULL DEFAULT '',
+    unsub_token TEXT UNIQUE
+);
+
+-- Every digest that went out (or appeared in-app), with the exact facts it
+-- was allowed to claim (context_json) — the audit trail for spec 10.
+CREATE TABLE IF NOT EXISTS digests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    kind TEXT NOT NULL DEFAULT 'weekly',
+    subject TEXT NOT NULL DEFAULT '',
+    html TEXT NOT NULL,
+    body_text TEXT NOT NULL DEFAULT '',
+    context_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    read_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_digests_user ON digests(user_id, id DESC);
