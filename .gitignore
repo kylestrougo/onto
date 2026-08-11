@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Local config and data — never commit the real ones
+backend/.env
+*.db
+*.db-wal
+*.db-shm
+*.secret
+backend/uploads/
+
+# Editor noise
+.DS_Store

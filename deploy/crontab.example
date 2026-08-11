@@ -1,0 +1,22 @@
+# Onto scheduled jobs — install with `crontab -e` as the `io` user.
+#
+# No long-lived scheduler process: the target is a Pi already running several
+# services, and a scheduler thread would sit in memory all day for jobs that
+# run once an hour. cron costs nothing when idle.
+#
+# Every job is idempotent and due-gated: cron fires dumbly, the command itself
+# decides what is actually due. A missed run is caught up on the next tick and
+# a doubled run changes nothing.
+
+ONTO=/home/io/onto/backend
+FLASK=/home/io/onto/backend/.venv/bin/flask
+
+# Nightly tidy: prune rate-limit counters and other unbounded tables.
+17 3 * * * cd $ONTO && $FLASK housekeeping >> /home/io/onto/logs/housekeeping.log 2>&1
+
+# Nightly backup. SQLite's online backup is safe against a live WAL database —
+# a plain `cp` of a file being written is not.
+30 3 * * * /home/io/onto/deploy/backup.sh >> /home/io/onto/logs/backup.log 2>&1
+
+# Later phases add: rollover (hourly), ingest (6-hourly), verify-events
+# (nightly), research (2x weekly), match (nightly), send-digests (hourly).

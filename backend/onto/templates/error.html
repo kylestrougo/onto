@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — Onto{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>{{ code }}</h1>
+  <p>{{ message }}</p>
+  <p class="alt"><a href="{{ url_for('week.home') }}">Back to this week</a></p>
+</div>
+{% endblock %}

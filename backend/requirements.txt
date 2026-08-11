@@ -1,0 +1,10 @@
+# Runtime dependencies. The target is a Raspberry Pi sharing 1GB of RAM with
+# other services — keep this list short and boring.
+Flask==3.0.3
+Flask-Login==0.6.3
+argon2-cffi==23.1.0
+requests==2.32.3
+python-dotenv==1.0.1
+# waitress over gunicorn: smaller resident footprint, and every slow request
+# here is I/O-bound (LLM calls), which its thread pool handles fine.
+waitress==3.0.0

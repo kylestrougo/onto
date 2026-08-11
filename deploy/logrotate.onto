@@ -1,0 +1,15 @@
+# Onto's cron logs. Install with:
+#   sudo cp /home/io/onto/deploy/logrotate.onto /etc/logrotate.d/onto
+#
+# Without this the cron jobs append forever, and this is an SD card — small,
+# and unpleasant to recover once it fills. systemd's own logs are handled by
+# journald and are not affected by this file.
+/home/io/onto/logs/*.log {
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 io io
+}

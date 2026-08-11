@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Onto{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/onto.css') }}">
+  <script src="{{ url_for('static', filename='js/vendor/htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/vendor/sortable.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/onto.js') }}" defer></script>
+</head>
+<body>
+  {% if current_user.is_authenticated %}
+  <header class="topbar">
+    <nav class="nav">
+      <a class="brand" href="{{ url_for('week.home') }}">onto</a>
+      {% block nav %}{% endblock %}
+      <form class="nav-logout" method="post" action="{{ url_for('auth.logout') }}">
+        <button class="linklike" type="submit">Sign out</button>
+      </form>
+    </nav>
+  </header>
+  {% endif %}
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flashes">
+        {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
