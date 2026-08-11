@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Sources — Onto{% endblock %}
+{% block content %}
+<h1>Event sources</h1>
+<p class="muted">Where the shared corpus comes from. Tier 1 = official/open data,
+2 = structured venue feed, 3 = LLM research. Five straight failures auto-disables
+a source; user flags can quarantine one.</p>
+
+<ul class="goal-rows">
+  {% for s in sources %}
+  <li class="goal-row {% if not s['enabled'] or s['quarantined_at'] %}is-retired{% endif %}">
+    <div class="goal-row-main">
+      <strong>{{ s['name'] }}</strong>
+      <span class="tag">{{ s['kind'] }} · tier {{ s['tier'] }}</span>
+      <span class="muted">{{ counts.get(s['id'], 0) }} active events</span>
+      {% if s['quarantined_at'] %}<span class="tag" style="background:#f9e9e6;color:#a33b2e">quarantined</span>{% endif %}
+      {% if s['consecutive_errors'] %}<span class="muted">{{ s['consecutive_errors'] }} errors in a row</span>{% endif %}
+    </div>
+    <div class="goal-row-meta">
+      <span class="muted">{{ s['last_status'][:60] }}</span>
+      <form method="post" action="{{ url_for('admin.edit_source', source_id=s['id']) }}" class="inline-form">
+        {% if s['quarantined_at'] %}
+          <input type="hidden" name="action" value="unquarantine">
+          <button class="btn-mini" type="submit">Unquarantine</button>
+        {% elif s['enabled'] %}
+          <input type="hidden" name="action" value="disable">
+          <button class="btn-mini" type="submit">Disable</button>
+        {% else %}
+          <input type="hidden" name="action" value="enable">
+          <button class="btn-mini btn-go" type="submit">Enable</button>
+        {% endif %}
+      </form>
+    </div>
+  </li>
+  {% else %}
+  <li class="goal-row"><span class="muted">No sources yet — add one below. docs/sources.md has ready-made configs.</span></li>
+  {% endfor %}
+</ul>
+
+<h2>Add a source</h2>
+<form method="post" action="{{ url_for('admin.add_source') }}" class="goal-form">
+  <label>Name <input name="name" required placeholder="NYC Parks events"></label>
+  <label>Kind
+    <select name="kind">
+      <option value="nyc_open_data">nyc_open_data — Socrata JSON dataset</option>
+      <option value="ics">ics — iCalendar feed</option>
+      <option value="jsonld">jsonld — page with schema.org Event markup</option>
+      <option value="llm_research">llm_research — SearXNG + LLM (tier 3)</option>
+    </select>
+  </label>
+  <label>Tier
+    <select name="tier">
+      <option value="1">1 — official / open data</option>
+      <option value="2" selected>2 — structured venue feed</option>
+      <option value="3">3 — LLM research</option>
+    </select>
+  </label>
+  <label>Config (JSON)
+    <textarea name="config_json" rows="6" placeholder='{"url": "https://...", "borough": "Brooklyn", "category_hint": "culture/live-music"}'>{}</textarea>
+  </label>
+  <button type="submit">Add source</button>
+</form>
+{% endblock %}

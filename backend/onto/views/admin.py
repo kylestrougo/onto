@@ -191,3 +191,112 @@ def save_weights():
                 execute("UPDATE subcategories SET points = ? WHERE id = ?", (pts, int(key[4:])))
     flash("Weights saved. They apply to every user's score from now on.")
     return redirect(url_for("admin.weights"))
+
+
+# ── Event sources & corpus ───────────────────────────────────────────────
+
+
+@bp.get("/sources")
+@admin_required
+def sources():
+    rows = query("SELECT * FROM sources ORDER BY name")
+    counts = {
+        r["source_id"]: r["n"]
+        for r in query(
+            "SELECT source_id, COUNT(*) AS n FROM events WHERE status='active'"
+            " GROUP BY source_id"
+        )
+    }
+    return render_template("admin/sources.html", sources=rows, counts=counts)
+
+
+@bp.post("/sources")
+@admin_required
+def add_source():
+    name = (request.form.get("name") or "").strip()
+    kind = request.form.get("kind") or ""
+    try:
+        tier = int(request.form.get("tier") or 0)
+    except ValueError:
+        tier = 0
+    raw_config = request.form.get("config_json") or "{}"
+    try:
+        config = json.loads(raw_config)
+        assert isinstance(config, dict)
+    except (ValueError, AssertionError):
+        flash("The config has to be a JSON object.")
+        return redirect(url_for("admin.sources"))
+    if not name or kind not in ("nyc_open_data", "ics", "jsonld", "llm_research"):
+        flash("A source needs a name and a known kind.")
+    elif tier not in (1, 2, 3):
+        flash("Tier is 1 (official), 2 (venue feed) or 3 (LLM research).")
+    elif kind != "llm_research" and not config.get("url"):
+        flash("The config needs a url.")
+    else:
+        execute(
+            "INSERT INTO sources (name, kind, tier, config_json) VALUES (?, ?, ?, ?)",
+            (name, kind, tier, json.dumps(config)),
+        )
+        flash("Added. The next ingest run picks it up — or run `flask ingest` now.")
+    return redirect(url_for("admin.sources"))
+
+
+@bp.post("/sources/<int:source_id>")
+@admin_required
+def edit_source(source_id: int):
+    action = request.form.get("action")
+    if action == "disable":
+        execute("UPDATE sources SET enabled = 0 WHERE id = ?", (source_id,))
+    elif action == "enable":
+        execute(
+            "UPDATE sources SET enabled = 1, consecutive_errors = 0 WHERE id = ?",
+            (source_id,),
+        )
+    elif action == "unquarantine":
+        # Deliberate two-step: the events stay quarantined; only re-ingest
+        # (or manual review) brings fresh ones in from this source.
+        execute(
+            "UPDATE sources SET quarantined_at = NULL, flag_count = 0, enabled = 1,"
+            " consecutive_errors = 0 WHERE id = ?",
+            (source_id,),
+        )
+    return redirect(url_for("admin.sources"))
+
+
+@bp.get("/events")
+@admin_required
+def events():
+    uncategorized = query(
+        "SELECT e.*, s.name AS source_name FROM events e JOIN sources s ON s.id = e.source_id"
+        " WHERE e.category_id IS NULL AND e.status = 'active' ORDER BY e.starts_at LIMIT 50"
+    )
+    recent = query(
+        "SELECT e.*, s.name AS source_name, c.name AS category_name"
+        " FROM events e JOIN sources s ON s.id = e.source_id"
+        " LEFT JOIN categories c ON c.id = e.category_id"
+        " WHERE e.status = 'active' AND e.category_id IS NOT NULL"
+        " ORDER BY e.first_seen_at DESC LIMIT 50"
+    )
+    cats = query("SELECT * FROM categories WHERE retired = 0 ORDER BY position")
+    return render_template(
+        "admin/events.html", uncategorized=uncategorized, recent=recent, cats=cats
+    )
+
+
+@bp.post("/events/<int:event_id>/categorize")
+@admin_required
+def categorize_event(event_id: int):
+    cat_id = request.form.get("category_id", type=int)
+    if cat_id:
+        execute(
+            "UPDATE events SET category_id = ?, subcategory_id = NULL WHERE id = ?",
+            (cat_id, event_id),
+        )
+    return redirect(url_for("admin.events"))
+
+
+@bp.post("/events/<int:event_id>/remove")
+@admin_required
+def remove_event(event_id: int):
+    execute("UPDATE events SET status = 'removed' WHERE id = ?", (event_id,))
+    return redirect(url_for("admin.events"))

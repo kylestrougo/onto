@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><title>What's on</title>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "MusicEvent",
+      "name": "Symphony Under the Stars",
+      "startDate": "2099-09-20T19:30:00-04:00",
+      "endDate": "2099-09-20T22:00:00-04:00",
+      "url": "https://example-museum.org/events/symphony",
+      "location": {"@type": "Place", "name": "Garden Amphitheater",
+                   "address": {"streetAddress": "200 Eastern Pkwy", "addressLocality": "Brooklyn"}},
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+      "description": "A free outdoor concert in the sculpture garden."
+    },
+    {"@type": "Person", "name": "Not An Event"}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{"@type": "ExhibitionEvent", "name": "Ancient Maps Exhibit",
+ "startDate": "2099-10-05T10:00:00",
+ "offers": {"price": "25.00"},
+ "description": "Rare maps from five centuries."}
+</script>
+<script type="application/ld+json">not even json</script>
+</head><body>hello</body></html>

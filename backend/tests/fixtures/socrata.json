@@ -1,0 +1,12 @@
+[
+  {"event_id": "P100", "event_name": "Central Park 5K Fun Run",
+   "start_date_time": "2099-08-20T09:00:00.000", "end_date_time": "2099-08-20T11:00:00.000",
+   "event_location": "Central Park, Bandshell", "event_borough": "Manhattan",
+   "snippet": "A morning fun run through the park loop."},
+  {"event_id": "P101", "event_name": "Outdoor Yoga Class",
+   "start_date_time": "2099-08-21T08:00:00.000",
+   "event_location": "Prospect Park", "event_borough": "Brooklyn",
+   "snippet": "Free yoga class on the long meadow."},
+  {"event_id": "P102", "event_name": "No Start Time Event",
+   "start_date_time": "", "event_borough": "Queens"}
+]

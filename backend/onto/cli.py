@@ -19,7 +19,61 @@ from .db import execute, get_db, query
 def housekeeping() -> None:
     """Nightly prune of unbounded tables. Safe to re-run."""
     n = ratelimit.prune_counters()
-    click.echo(f"housekeeping: pruned {n} old usage counters")
+    # Events long past keep no purpose; flagged ones stay for the audit trail.
+    db = get_db()
+    cur = db.execute(
+        "DELETE FROM events WHERE status IN ('expired', 'removed')"
+        " AND COALESCE(ends_at, starts_at) < datetime('now', '-30 days')"
+        " AND id NOT IN (SELECT event_id FROM event_flags)"
+        if _table_exists(db, "event_flags")
+        else "DELETE FROM events WHERE status IN ('expired', 'removed')"
+        " AND COALESCE(ends_at, starts_at) < datetime('now', '-30 days')"
+    )
+    db.commit()
+    click.echo(f"housekeeping: pruned {n} counters, {cur.rowcount} stale events")
+
+
+def _table_exists(db, name: str) -> bool:
+    return bool(
+        db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+        ).fetchone()
+    )
+
+
+@click.command("ingest")
+@click.option("--source", "source_name", default=None, help="Run one source by name.")
+@with_appcontext
+def ingest_cmd(source_name: str | None) -> None:
+    """Fetch enabled sources into the shared event corpus. Idempotent —
+    re-running updates rather than duplicates."""
+    from .ingest import base as ingest_base
+
+    where = "enabled = 1 AND quarantined_at IS NULL"
+    args: tuple = ()
+    if source_name:
+        where += " AND name = ?"
+        args = (source_name,)
+    sources = query(f"SELECT * FROM sources WHERE {where}", args)
+    if not sources:
+        click.echo("ingest: no matching enabled sources")
+        return
+    for source in sources:
+        counts = ingest_base.run_source(source)
+        click.echo(f"ingest: {source['name']}: {counts}")
+
+
+@click.command("verify-events")
+@click.option("--limit", default=100, show_default=True)
+@with_appcontext
+def verify_events_cmd(limit: int) -> None:
+    """Nightly: expire past events, then re-check the stalest URLs."""
+    from .ingest import verify
+
+    expired = verify.expire_past_events()
+    result = verify.verify_batch(limit)
+    click.echo(f"verify-events: expired {expired}, checked {result['checked']},"
+               f" ok {result['ok']}, bad {result['bad']}")
 
 
 def _materialize(user_id: int, period_kind: str, key: str) -> int:
@@ -94,3 +148,5 @@ def rollover() -> None:
 def init_app(app) -> None:
     app.cli.add_command(housekeeping)
     app.cli.add_command(rollover)
+    app.cli.add_command(ingest_cmd)
+    app.cli.add_command(verify_events_cmd)

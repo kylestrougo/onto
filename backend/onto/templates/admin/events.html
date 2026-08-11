@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Events — Onto{% endblock %}
+{% block content %}
+<h1>Event corpus</h1>
+
+{% if uncategorized %}
+<h2>Needs a category ({{ uncategorized|length }})</h2>
+<p class="muted">Keyword matching couldn't place these. They aren't suggested
+until they have a category.</p>
+<ul class="goal-rows">
+  {% for e in uncategorized %}
+  <li class="goal-row">
+    <div class="goal-row-main">
+      <a href="{{ e['url'] }}" rel="noopener" target="_blank"><strong>{{ e['title'] }}</strong></a>
+      <span class="muted">{{ e['starts_at'][:16] }} · {{ e['borough'] or '?' }} · {{ e['source_name'] }}</span>
+    </div>
+    <div class="goal-row-meta">
+      <form method="post" action="{{ url_for('admin.categorize_event', event_id=e['id']) }}" class="tax-row">
+        <select name="category_id">
+          {% for c in cats %}<option value="{{ c['id'] }}">{{ c['name'] }}</option>{% endfor %}
+        </select>
+        <button class="btn-mini btn-go" type="submit">Set</button>
+      </form>
+      <form method="post" action="{{ url_for('admin.remove_event', event_id=e['id']) }}" class="inline-form">
+        <button class="btn-mini" type="submit">Remove</button>
+      </form>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Recently ingested</h2>
+<ul class="goal-rows">
+  {% for e in recent %}
+  <li class="goal-row">
+    <div class="goal-row-main">
+      <a href="{{ e['url'] }}" rel="noopener" target="_blank"><strong>{{ e['title'] }}</strong></a>
+      <span class="tag">{{ e['category_name'] }}</span>
+      <span class="muted">{{ e['starts_at'][:16] }} · {{ e['borough'] or '?' }}
+        · tier {{ e['tier'] }} · {{ e['source_name'] }}
+        {% if e['verify_ok'] == 0 %} · <strong style="color:#a33b2e">dead link</strong>{% endif %}</span>
+    </div>
+    <form method="post" action="{{ url_for('admin.remove_event', event_id=e['id']) }}" class="inline-form">
+      <button class="btn-mini" type="submit">Remove</button>
+    </form>
+  </li>
+  {% else %}
+  <li class="goal-row"><span class="muted">Nothing ingested yet — add a source and run <code>flask ingest</code>.</span></li>
+  {% endfor %}
+</ul>
+{% endblock %}

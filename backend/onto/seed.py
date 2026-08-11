@@ -78,7 +78,7 @@ TAXONOMY: list[dict] = [
         "slug": "culture",
         "example": "Visit a museum this month",
         "subs": [
-            ("Museums/exhibits", "museums-exhibits", ["museum", "exhibit opening", "gallery opening", "art show"]),
+            ("Museums/exhibits", "museums-exhibits", ["museum", "exhibit", "exhibition", "gallery opening", "art show"]),
             ("Live music", "live-music", ["concert", "live music", "gig", "music festival"]),
             ("Film/theater", "film-theater", ["film screening", "movie night", "theater", "play", "musical"]),
             ("Food/dining", "food-dining", ["food festival", "restaurant week", "night market", "food crawl"]),

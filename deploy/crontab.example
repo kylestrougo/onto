@@ -22,3 +22,12 @@ FLASK=/home/io/onto/backend/.venv/bin/flask
 # dumb on purpose: the command checks each user's own timezone and does
 # nothing unless their week or month actually turned over.
 5 * * * * cd $ONTO && $FLASK rollover >> /home/io/onto/logs/rollover.log 2>&1
+
+# Pull fresh events into the shared corpus from every enabled source.
+# City-wide, never per-user (one corpus for everyone). Re-runs update
+# rather than duplicate.
+15 */6 * * * cd $ONTO && $FLASK ingest >> /home/io/onto/logs/ingest.log 2>&1
+
+# Expire past events and re-check the stalest source URLs, so nothing is
+# ever suggested from a dead link or the past.
+45 2 * * * cd $ONTO && $FLASK verify-events >> /home/io/onto/logs/verify.log 2>&1

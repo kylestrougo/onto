@@ -195,3 +195,65 @@ CREATE TABLE IF NOT EXISTS activity (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_activity_user ON activity(user_id, id DESC);
+
+-- ── Event discovery corpus (spec 8) ──────────────────────────────────────
+-- One shared, city-wide corpus; research runs on a schedule, never per user
+-- (spec 8.3). Every event keeps its provenance (spec 8.4).
+
+CREATE TABLE IF NOT EXISTS sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    -- Which adapter fetches it: 'nyc_open_data' | 'ics' | 'jsonld' | 'llm_research'
+    kind TEXT NOT NULL CHECK (kind IN ('nyc_open_data', 'ics', 'jsonld', 'llm_research')),
+    -- Provenance tier: 1 official/open data, 2 structured venue feed,
+    -- 3 LLM web research. Copied onto every event it produces.
+    tier INTEGER NOT NULL CHECK (tier BETWEEN 1 AND 3),
+    -- Adapter settings: url, field mapping, default category slug, ...
+    config_json TEXT NOT NULL DEFAULT '{}',
+    enabled INTEGER NOT NULL DEFAULT 1,
+    quarantined_at TEXT,
+    -- Adapter failures in a row; >= 5 auto-disables (unattended cron safety).
+    consecutive_errors INTEGER NOT NULL DEFAULT 0,
+    -- Distinct-user flags roll up here; repeat offenders get quarantined
+    -- (spec 10.6).
+    flag_count INTEGER NOT NULL DEFAULT 0,
+    last_run_at TEXT,
+    last_status TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id INTEGER NOT NULL REFERENCES sources(id),
+    -- The source's own id for the event; the upsert key per source.
+    external_id TEXT NOT NULL,
+    -- slug(title) + local date; cross-source duplicate detection.
+    dedupe_key TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    -- Non-negotiable: every event links to where it came from (spec 10.5).
+    url TEXT NOT NULL,
+    starts_at TEXT NOT NULL,          -- UTC 'YYYY-MM-DD HH:MM:SS'
+    ends_at TEXT,
+    venue_name TEXT NOT NULL DEFAULT '',
+    address TEXT NOT NULL DEFAULT '',
+    borough TEXT NOT NULL DEFAULT '',
+    city TEXT NOT NULL DEFAULT 'NYC',
+    lat REAL, lon REAL,
+    -- NULL category = the admin's uncategorized queue, not a dropped event.
+    category_id INTEGER REFERENCES categories(id),
+    subcategory_id INTEGER REFERENCES subcategories(id),
+    cost_cents INTEGER,
+    is_free INTEGER NOT NULL DEFAULT 0,
+    tier INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'expired', 'quarantined', 'removed')),
+    raw_json TEXT NOT NULL DEFAULT '{}',
+    first_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_verified_at TEXT,
+    verify_ok INTEGER,
+    UNIQUE (source_id, external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_events_status_start ON events(status, starts_at);
+CREATE INDEX IF NOT EXISTS idx_events_cat_start ON events(category_id, starts_at);
+CREATE INDEX IF NOT EXISTS idx_events_dedupe ON events(dedupe_key);

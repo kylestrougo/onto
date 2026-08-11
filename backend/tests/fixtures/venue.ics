@@ -1,0 +1,28 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Example Hall//Events//EN
+BEGIN:VEVENT
+UID:evt-100@example-hall.org
+DTSTART;TZID=America/New_York:20990915T200000
+DTEND;TZID=America/New_York:20990915T230000
+SUMMARY:Jazz Quartet Night
+LOCATION:Example Hall\, Main Stage
+DESCRIPTION:An evening of live jazz with the house quartet.\nDoors at 7.
+URL:https://example-hall.org/events/jazz-quartet
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-101@example-hall.org
+DTSTART:20991001T190000Z
+SUMMARY:Poetry Open Mic
+DESCRIPTION:Bring a poem\, read a poem.
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-broken@example-hall.org
+DTSTART;VALUE=DATE:20991120
+SUMMARY:All Day Craft Fair
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-no-date@example-hall.org
+SUMMARY:Mystery Event With No Date
+END:VEVENT
+END:VCALENDAR
