@@ -14,6 +14,10 @@
   <a class="week-nav" href="{{ url_for('week.show', key=next_key) }}" aria-label="Next week">&rarr;</a>
 </div>
 
+{% if mix_rows %}
+  {% with oob = False %}{% include "partials/_mix_bar.html" %}{% endwith %}
+{% endif %}
+
 <div class="week-layout">
   <section class="commit-zone">
     <ul id="commit-list" class="commit-list" data-week-key="{{ key }}"

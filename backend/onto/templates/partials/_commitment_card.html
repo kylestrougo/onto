@@ -37,4 +37,7 @@
   {% endwith %}
   {# The goal just left the library panel for this period. #}
   <li id="goal-chip-{{ c['goal_id'] }}" hx-swap-oob="delete"></li>
+  {% if oob_mix %}
+    {% with mix_rows = oob_mix, oob = True %}{% include "partials/_mix_bar.html" %}{% endwith %}
+  {% endif %}
 {% endif %}

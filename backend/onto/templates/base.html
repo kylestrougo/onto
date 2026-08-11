@@ -22,6 +22,10 @@
       {% endif %}
       <a href="{{ url_for('library.index') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('library.') }}">Things I want to do</a>
+      {% if unlocked('mix') %}
+      <a href="{{ url_for('mix.edit') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('mix.') }}">Balance</a>
+      {% endif %}
       {% if current_user.is_admin %}
       <a href="{{ url_for('admin.index') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.') }}">Admin</a>

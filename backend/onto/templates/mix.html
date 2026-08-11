@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Balance — Onto{% endblock %}
+{% block content %}
+<h1>Balance</h1>
+<p class="muted">Rough targets for how your time splits across categories —
+e.g. about 30% health, 20% social. Optional, and they don't have to add up to
+100: whatever's left is "anything". This never changes your score; it just
+shows on the week so lopsided plans are visible before they start.</p>
+
+<div class="week-layout">
+  <form method="post" action="{{ url_for('mix.save') }}" class="new-goal">
+    <h2>Each week</h2>
+    <input type="hidden" name="period_kind" value="week">
+    {% for cat in cats %}
+    <label class="weight-row">{{ cat['name'] }}
+      <span class="mix-input-wrap">
+        <input name="cat-{{ cat['id'] }}" type="number" min="0" max="100"
+               value="{{ weekly.get(cat['id'], '') }}" class="weight-input" placeholder="–">%
+      </span>
+    </label>
+    {% endfor %}
+    <button type="submit">Save weekly balance</button>
+  </form>
+
+  <form method="post" action="{{ url_for('mix.save') }}" class="new-goal">
+    <h2>Each month</h2>
+    <input type="hidden" name="period_kind" value="month">
+    {% for cat in cats %}
+    <label class="weight-row">{{ cat['name'] }}
+      <span class="mix-input-wrap">
+        <input name="cat-{{ cat['id'] }}" type="number" min="0" max="100"
+               value="{{ monthly.get(cat['id'], '') }}" class="weight-input" placeholder="–">%
+      </span>
+    </label>
+    {% endfor %}
+    <button type="submit">Save monthly balance</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{# Live target-vs-plan bars (spec 4.5). Included on page render, and carried
+   hx-swap-oob on every commitment mutation so it tracks the plan as it's
+   shaped. Only renders content when the user has set targets. #}
+<div id="mix-bar" class="mix-bar" {% if oob %}hx-swap-oob="true"{% endif %}>
+  {% if mix_rows %}
+    {% for row in mix_rows %}
+    <div class="mix-row" title="{{ row.name }}: planned {{ row.actual }}%, aiming for {{ row.target }}%">
+      <span class="mix-label">{{ row.name }}</span>
+      <span class="mix-track">
+        {% if row.target %}<span class="mix-target" style="width: {{ row.target }}%"></span>{% endif %}
+        <span class="mix-fill tagbg-{{ row.slug }}" style="width: {{ [row.actual, 100] | min }}%"></span>
+      </span>
+      <span class="mix-nums">{{ row.actual | round | int }}<span class="muted">/{{ row.target }}%</span></span>
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>

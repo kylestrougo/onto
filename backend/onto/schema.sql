@@ -141,3 +141,15 @@ CREATE TABLE IF NOT EXISTS user_flags (
     unlocked_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (user_id, flag)
 );
+
+-- ── Category mix (spec 4): a planning aid, never a scoring input ─────────
+-- Target ratios per user and period kind. Rows are only present for
+-- categories with a target; ratios needn't total 100 — the remainder is
+-- "anything" (spec 4.4).
+CREATE TABLE IF NOT EXISTS mix_targets (
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    period_kind TEXT NOT NULL CHECK (period_kind IN ('week', 'month')),
+    category_id INTEGER NOT NULL REFERENCES categories(id),
+    percent INTEGER NOT NULL CHECK (percent BETWEEN 1 AND 100),
+    PRIMARY KEY (user_id, period_kind, category_id)
+);

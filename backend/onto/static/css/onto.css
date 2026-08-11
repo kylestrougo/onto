@@ -327,3 +327,32 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 .weight-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-weight: 500; }
 .weight-row.weight-sub { padding-left: 1.2rem; color: var(--muted); }
 .weight-input { width: 6rem; padding: 0.3rem 0.45rem; }
+
+/* ── Mix bar ─────────────────────────────────────────────────────────── */
+.mix-bar { margin: 0 0 1rem; }
+.mix-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem; }
+.mix-label { flex: 0 0 7rem; font-size: 0.85rem; color: var(--muted); text-align: right; }
+.mix-track {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.mix-target {
+  position: absolute; inset: 0 auto 0 0;
+  background: repeating-linear-gradient(45deg, transparent, transparent 3px, var(--line) 3px, var(--line) 5px);
+}
+.mix-fill { position: absolute; inset: 2px auto 2px 2px; border-radius: 99px; opacity: 0.85; }
+.mix-nums { flex: 0 0 4.2rem; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.mix-input-wrap { display: flex; align-items: center; gap: 0.25rem; }
+
+.tagbg-health { background: #2f6f4f; }
+.tagbg-upskilling { background: #33568e; }
+.tagbg-social { background: #94395c; }
+.tagbg-creative { background: #6f3f8e; }
+.tagbg-hobby { background: #5a6e2a; }
+.tagbg-culture { background: #8e6023; }
+.tagbg-admin-life { background: #777; }

@@ -5,3 +5,6 @@
 {% with progress = oob_progress, score = oob_score, oob = True %}
   {% include "partials/_progress_badge.html" %}
 {% endwith %}
+{% if oob_mix %}
+  {% with mix_rows = oob_mix, oob = True %}{% include "partials/_mix_bar.html" %}{% endwith %}
+{% endif %}

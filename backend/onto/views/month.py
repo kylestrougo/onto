@@ -4,7 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from .. import commitments, goals, periods
+from .. import commitments, goals, mix, periods, scoring
 
 bp = Blueprint("month", __name__)
 
@@ -35,6 +35,8 @@ def show(key: str):
         commitments=commitments.for_period(current_user.id, "month", key),
         available=commitments.uncommitted_goals(current_user.id, "month", key),
         progress=commitments.progress(current_user.id, "month", key),
+        score=scoring.period_score(current_user.id, "month", key),
+        mix_rows=mix.bar_data(current_user.id, "month", key),
     )
 
 

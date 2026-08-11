@@ -10,7 +10,7 @@ from __future__ import annotations
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from .. import commitments, disclosure, goals, periods, scoring
+from .. import commitments, disclosure, goals, mix, periods, scoring
 
 bp = Blueprint("week", __name__)
 
@@ -43,6 +43,7 @@ def show(key: str):
         available=commitments.uncommitted_goals(current_user.id, "week", key),
         progress=commitments.progress(current_user.id, "week", key),
         score=scoring.period_score(current_user.id, "week", key),
+        mix_rows=mix.bar_data(current_user.id, "week", key),
     )
 
 
@@ -57,6 +58,7 @@ def _card(commitment_id: int, key: str, period_kind: str = "week", oob: bool = T
         period_kind=period_kind,
         oob_progress=commitments.progress(current_user.id, period_kind, key) if oob else None,
         oob_score=scoring.period_score(current_user.id, period_kind, key) if oob else None,
+        oob_mix=mix.bar_data(current_user.id, period_kind, key) if oob else None,
     )
 
 
@@ -133,6 +135,7 @@ def remove(cid: int):
         period_kind=c["period_kind"],
         oob_progress=commitments.progress(current_user.id, c["period_kind"], c["period_key"]),
         oob_score=scoring.period_score(current_user.id, c["period_kind"], c["period_key"]),
+        oob_mix=mix.bar_data(current_user.id, c["period_kind"], c["period_key"]),
     )
 
 
@@ -143,6 +146,24 @@ def recap(kind: str, key: str):
     if kind not in ("week", "month") or not periods.valid_key(kind, key):
         abort(404)
     score = scoring.period_score(current_user.id, kind, key)
+    # Planned vs target vs completed mix (spec 4.6) — the gap between planned
+    # and completed is the interesting number.
+    tgt = mix.targets(current_user.id, kind)
+    planned = mix.planned_mix(current_user.id, kind, key)
+    completed = mix.completed_mix(current_user.id, kind, key)
+    from ..db import query as _q
+
+    mix_summary = []
+    if tgt or planned:
+        for c in _q("SELECT id, name FROM categories ORDER BY position"):
+            row = {
+                "name": c["name"],
+                "target": tgt.get(c["id"], 0),
+                "planned": planned.get(c["id"], 0.0),
+                "completed": completed.get(c["id"], 0.0),
+            }
+            if row["target"] or row["planned"] or row["completed"]:
+                mix_summary.append(row)
     return render_template(
         "recap.html",
         period_kind=kind,
@@ -150,4 +171,6 @@ def recap(kind: str, key: str):
         label=periods.label(kind, key),
         score=score,
         fraction=scoring.fraction,
+        mix_summary=mix_summary,
+        has_mix_targets=bool(tgt),
     )

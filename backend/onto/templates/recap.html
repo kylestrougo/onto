@@ -30,5 +30,20 @@
 <p class="muted">Nothing was planned for this {{ period_kind }}.</p>
 {% endif %}
 
+{% if mix_summary %}
+<h2>How the balance came out</h2>
+<ul class="goal-rows">
+  {% for row in mix_summary %}
+  <li class="goal-row">
+    <div class="goal-row-main"><strong>{{ row.name }}</strong></div>
+    <span class="muted mix-recap-nums">
+      planned {{ row.planned | round | int }}%{% if has_mix_targets %}
+      · aimed {{ row.target }}%{% endif %}
+      · did {{ row.completed | round | int }}%
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
 {% block recap_extra %}{% endblock %}
 {% endblock %}
