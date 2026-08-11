@@ -45,3 +45,11 @@ FLASK=/home/io/onto/backend/.venv/bin/flask
 # from each user's frequency, hour, and timezone, and last_sent_on stops
 # double-sends. Email dry-run config makes this safe on a first deploy.
 0 * * * * cd $ONTO && $FLASK send-digests >> /home/io/onto/logs/digests.log 2>&1
+
+# Repair the LLM model chain if it has rotted. The free catalogue churns
+# without notice; a chain that worked last week can be entirely dead this
+# week, taking research and digests down with it. This only rebuilds a
+# chain that stopped working — it will NOT reorder a working chain to chase
+# a faster model. Choosing on quality stays a human decision, from
+# /admin/models. Twice a week; costs a few free-tier calls when healthy.
+35 4 * * 1,4 cd $ONTO && $FLASK refresh-chain >> /home/io/onto/logs/chain.log 2>&1

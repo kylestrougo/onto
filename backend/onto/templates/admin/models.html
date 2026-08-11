@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Models — Onto{% endblock %}
+{% block content %}
+<h1>LLM models</h1>
+<p class="muted">The chain is tried in order until one model answers usable JSON.
+The <code>refresh-chain</code> cron repairs it if it dies; it never reorders a
+working chain — that's your call, from here.</p>
+
+<div class="week-layout">
+  <div>
+    <h2>The chain, in order</h2>
+    <ol class="goal-rows chain-list">
+      {% for m in chain %}
+      <li class="goal-row">
+        <div class="goal-row-main"><strong>{{ loop.index }}.</strong> <code>{{ m }}</code></div>
+        <div class="goal-row-meta">
+          <form method="post" action="{{ url_for('admin.edit_chain') }}" class="inline-form">
+            <input type="hidden" name="model" value="{{ m }}">
+            <button class="btn-mini" name="action" value="up" {% if loop.first %}disabled{% endif %} aria-label="Move up">&uarr;</button>
+            <button class="btn-mini" name="action" value="down" {% if loop.last %}disabled{% endif %} aria-label="Move down">&darr;</button>
+            <button class="btn-mini btn-x" name="action" value="remove" aria-label="Remove">&times;</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+
+    <h2>Per-task overrides</h2>
+    <p class="muted">Pin a model for one kind of call; it leads and the chain
+    still backs it up. Blank means chain order.</p>
+    <form method="post" action="{{ url_for('admin.save_overrides') }}">
+      {% for intent in intents %}
+      <label class="weight-row">{{ intent.replace('_', ' ') }}
+        <select name="override-{{ intent }}" class="override-select">
+          <option value="">chain order</option>
+          {% for m in model_options %}
+          <option value="{{ m }}" {% if overrides.get(intent) == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endfor %}
+      <button type="submit">Save overrides</button>
+    </form>
+
+    <h2>Test a generation</h2>
+    <form method="post" action="{{ url_for('admin.test_model') }}">
+      <label>Model
+        <select name="model">
+          {% for m in model_options %}
+          <option value="{{ m }}" {% if test_result and test_result.model == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Task
+        <select name="intent">
+          {% for intent in intents %}
+          <option value="{{ intent }}" {% if test_result and test_result.intent == intent %}selected{% endif %}>{{ intent.replace('_', ' ') }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit">Run a test generation</button>
+      <span class="muted">Costs one real free-tier call.</span>
+    </form>
+
+    {% if test_result %}
+    <div class="test-result {% if test_result.ok %}test-ok{% else %}test-bad{% endif %}">
+      <p>
+        {% if test_result.ok %}<strong>OK</strong>{% else %}<strong>Failed</strong>{% endif %}
+        · {{ test_result.model }} · {{ test_result.intent }} · {{ test_result.latency_ms }}ms
+        {% if test_result.error %} · {{ test_result.error }}{% endif %}
+      </p>
+      {% if test_result.raw %}
+      <h3>Raw</h3>
+      <pre class="test-pre">{{ test_result.raw[:4000] }}</pre>
+      {% endif %}
+      {% if test_result.parsed_pretty %}
+      <h3>Parsed</h3>
+      <pre class="test-pre">{{ test_result.parsed_pretty }}</pre>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <h2>Free models on OpenRouter</h2>
+    {% if catalogue_error %}
+      <p class="error">{{ catalogue_error }}</p>
+    {% endif %}
+    <ul class="goal-rows catalogue-list">
+      {% for m in catalogue %}
+      <li class="goal-row">
+        <div class="goal-row-main">
+          <code>{{ m['id'] }}</code>
+          <span class="muted">
+            {% if m['context_length'] %}{{ (m['context_length'] / 1024) | round | int }}k ctx{% endif %}
+            {% if m['stats'] %} · {{ (100 * m['stats']['ok_rate']) | round | int }}% ok
+              · {{ m['stats']['p50_ms'] or '—' }}ms p50{% endif %}
+          </span>
+        </div>
+        <form method="post" action="{{ url_for('admin.edit_chain') }}" class="inline-form">
+          <input type="hidden" name="model" value="{{ m['id'] }}">
+          {% if m['id'] in chain %}
+            <button class="btn-mini" disabled>In chain</button>
+          {% else %}
+            <button class="btn-mini btn-go" name="action" value="add">Add</button>
+          {% endif %}
+        </form>
+      </li>
+      {% else %}
+      {% if not catalogue_error %}<li class="goal-row"><span class="muted">Catalogue is empty.</span></li>{% endif %}
+      {% endfor %}
+    </ul>
+
+    <h2>Recent behaviour (7 days)</h2>
+    <ul class="goal-rows">
+      {% for s in stats %}
+      <li class="goal-row">
+        <div class="goal-row-main"><code>{{ s['model'] }}</code></div>
+        <span class="muted">{{ s['calls'] }} calls · {{ (100 * s['ok_rate']) | round | int }}% ok
+          · p50 {{ s['p50_ms'] or '—' }} · p95 {{ s['p95_ms'] or '—' }}
+          {% if s['last_error'] %} · {{ s['last_error'][:50] }}{% endif %}</span>
+      </li>
+      {% else %}
+      <li class="goal-row"><span class="muted">No calls recorded yet.</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

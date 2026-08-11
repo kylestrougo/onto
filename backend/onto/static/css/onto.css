@@ -384,3 +384,12 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 .suggestion-reason { font-size: 0.8rem; width: 100%; }
 .event-link { font-size: 0.85rem; text-decoration: none; }
 .event-link:hover { text-decoration: underline; }
+
+/* ── Admin: models ───────────────────────────────────────────────────── */
+.chain-list { list-style: none; }
+.test-result { border: 1px solid var(--line); border-radius: var(--radius); padding: 0.7rem 0.9rem; margin-top: 0.8rem; background: var(--card); }
+.test-ok { border-left: 4px solid var(--accent); }
+.test-bad { border-left: 4px solid var(--danger); }
+.test-pre { background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 0.5rem 0.7rem; overflow-x: auto; font-size: 0.8rem; max-height: 300px; }
+.override-select { width: auto; min-width: 14rem; }
+.catalogue-list { max-height: 420px; overflow-y: auto; }

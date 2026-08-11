@@ -331,3 +331,139 @@ def categorize_event(event_id: int):
 def remove_event(event_id: int):
     execute("UPDATE events SET status = 'removed' WHERE id = ?", (event_id,))
     return redirect(url_for("admin.events"))
+
+
+# ── LLM models: chain, overrides, live test (curio port) ─────────────────
+
+# Intents the live-test button can exercise, mapped to a canonical prompt.
+# CAREFUL: this dict doubles as the allow-list for per-intent overrides —
+# an intent the app routes but this dict omits would have its override
+# silently dropped on save (curio shipped exactly that bug with "email";
+# test_admin_models pins a round trip for every key here).
+def _test_intents():
+    from ..cli import _bench_prompt
+    from .. import prompts
+
+    return {
+        "digest": _bench_prompt,
+        "research_extract": lambda: prompts.research_extract(
+            "https://example.org/events",
+            "Community Jazz Night at the Riverside Bandshell, Brooklyn. "
+            "Free outdoor concert this season, all welcome. "
+            "See https://example.org/events for dates and lineup." * 3,
+            "NYC",
+        ),
+    }
+
+
+def _chain_page_context(test_result=None):
+    from .. import llm
+
+    try:
+        catalogue = llm.list_free_models()
+        catalogue_error = None
+    except Exception as exc:  # requests errors — the page must still work
+        catalogue, catalogue_error = [], f"Couldn't reach OpenRouter: {exc}"
+    stats = {s["model"]: s for s in llm.stats_rollup(7)}
+    for m in catalogue:
+        m["stats"] = stats.get(m["id"])
+    chain = llm.get_chain()
+    return {
+        "chain": chain,
+        "overrides": llm.get_overrides(),
+        "catalogue": catalogue,
+        "catalogue_error": catalogue_error,
+        "stats": llm.stats_rollup(7),
+        "intents": sorted(_test_intents()),
+        # Options for override/test selects: chain first, then the rest.
+        "model_options": chain + [m["id"] for m in catalogue if m["id"] not in chain],
+        "test_result": test_result,
+    }
+
+
+@bp.get("/models")
+@admin_required
+def models():
+    return render_template("admin/models.html", **_chain_page_context())
+
+
+MAX_CHAIN = 8
+
+
+@bp.post("/models/chain")
+@admin_required
+def edit_chain():
+    """Immediate chain mutations: up/down/remove/add. Never saves an empty
+    chain — an empty chain fails every generation."""
+    from .. import llm
+
+    chain = llm.get_chain()
+    action = request.form.get("action")
+    model = (request.form.get("model") or "").strip()
+
+    if action == "add" and model:
+        if model in chain:
+            flash("Already in the chain.")
+        elif len(chain) >= MAX_CHAIN:
+            flash(f"The chain caps at {MAX_CHAIN} — remove one first.")
+        else:
+            chain = chain + [model]
+    elif action in ("up", "down") and model in chain:
+        i = chain.index(model)
+        j = i - 1 if action == "up" else i + 1
+        if 0 <= j < len(chain):
+            chain = list(chain)
+            chain[i], chain[j] = chain[j], chain[i]
+    elif action == "remove" and model in chain:
+        if len(chain) == 1:
+            flash("The chain needs at least one model.")
+        else:
+            chain = [m for m in chain if m != model]
+
+    cleaned = []
+    for m in chain[:MAX_CHAIN]:
+        if isinstance(m, str) and m.strip() and m.strip() not in cleaned:
+            cleaned.append(m.strip())
+    if cleaned:
+        llm.set_config_json(llm.CONFIG_KEY_CHAIN, cleaned)
+    return redirect(url_for("admin.models"))
+
+
+@bp.post("/models/overrides")
+@admin_required
+def save_overrides():
+    """Full replacement, filtered to known intents. Blank = chain order."""
+    from .. import llm
+
+    cleaned = {}
+    for intent in _test_intents():
+        value = (request.form.get(f"override-{intent}") or "").strip()
+        if value:
+            cleaned[intent] = value
+    llm.set_config_json(llm.CONFIG_KEY_OVERRIDES, cleaned)
+    flash("Overrides saved. The override leads; the chain still backs it up.")
+    return redirect(url_for("admin.models"))
+
+
+@bp.post("/models/test")
+@admin_required
+def test_model():
+    """One real generation, raw and parsed shown side by side — the fastest
+    way to vet a model. Failure is content, never an error page."""
+    import json as _json
+
+    from .. import llm
+
+    model = (request.form.get("model") or "").strip()
+    intent = request.form.get("intent") or "digest"
+    intents = _test_intents()
+    if not model or intent not in intents:
+        flash("Pick a model and a known intent.")
+        return redirect(url_for("admin.models"))
+    system, user = intents[intent]()
+    result = llm.generate_raw(model, system, user)
+    result["model"] = model
+    result["intent"] = intent
+    if result["parsed"] is not None:
+        result["parsed_pretty"] = _json.dumps(result["parsed"], indent=2)[:4000]
+    return render_template("admin/models.html", **_chain_page_context(test_result=result))

@@ -29,6 +29,9 @@ PARSE_ATTEMPTS_PER_MODEL = 2
 _TEMPERATURES = {
     "research_extract": 0.2,   # facts from a fetched page — no creativity wanted
     "digest": 0.7,             # warm prose around server-verified facts
+    # Deliberately mirrors "digest": the benchmark must measure what
+    # production runs, or refresh-chain ranks models on the wrong task.
+    "bench": 0.7,
     "generic": 0.5,
 }
 
@@ -66,9 +69,14 @@ def get_chain() -> list[str]:
     return list(current_app.config["DEFAULT_MODEL_CHAIN"])
 
 
+def get_overrides() -> dict:
+    """Optional per-intent model override, e.g. a careful model for research."""
+    ov = _config_json(CONFIG_KEY_OVERRIDES, {})
+    return ov if isinstance(ov, dict) else {}
+
+
 def chain_for(intent: str) -> list[str]:
-    overrides = _config_json(CONFIG_KEY_OVERRIDES, {})
-    override = overrides.get(intent) if isinstance(overrides, dict) else None
+    override = get_overrides().get(intent)
     chain = get_chain()
     if override:
         # The override leads; the rest of the chain still backs it up.
@@ -260,13 +268,107 @@ def generate(
     raise LLMError(last_error)
 
 
-def stats_rollup(days: int = 7):
-    """Per-model health for /admin: ok-rate and latency percentiles."""
-    return query(
-        "SELECT model, COUNT(*) AS calls, AVG(ok) AS ok_rate,"
-        " CAST(AVG(latency_ms) AS INTEGER) AS avg_ms,"
-        " MAX(CASE WHEN ok = 0 THEN error END) AS last_error"
-        " FROM model_stats WHERE created_at > datetime('now', ?)"
-        " GROUP BY model ORDER BY calls DESC",
+def generate_raw(
+    model: str,
+    system: str,
+    user: str,
+    max_tokens: int = 1000,
+    intent: str = "admin_test",
+) -> dict:
+    """One model, one attempt, no chain, no raise — the probe behind the
+    admin test button and the refresh-chain benchmark.
+
+    Returns {ok, raw, parsed, latency_ms, error} and records the attempt to
+    model_stats whatever happens, so probes show up in the same health view
+    as production calls.
+    """
+    started = time.monotonic()
+    try:
+        raw = _post(
+            model, system, user, max_tokens,
+            json_mode=True, temperature=_temperature_for(intent),
+        )
+    except (LLMError, requests.RequestException) as exc:
+        elapsed = int((time.monotonic() - started) * 1000)
+        error = f"{type(exc).__name__}: {exc}"[:300]
+        _record(model, intent, False, elapsed, error)
+        return {"ok": False, "raw": None, "parsed": None, "latency_ms": elapsed, "error": error}
+
+    elapsed = int((time.monotonic() - started) * 1000)
+    try:
+        parsed = parse_json_loose(raw)
+    except ValueError as exc:
+        error = f"unparseable: {exc}"
+        _record(model, intent, False, elapsed, error)
+        return {"ok": False, "raw": raw, "parsed": None, "latency_ms": elapsed, "error": error}
+
+    _record(model, intent, True, elapsed, None)
+    return {"ok": True, "raw": raw, "parsed": parsed, "latency_ms": elapsed, "error": None}
+
+
+def list_free_models() -> list[dict]:
+    """OpenRouter catalogue, filtered to the free variants.
+
+    Unauthenticated on purpose — /models is public — and the ':free' id
+    suffix is the entire definition of "free" here.
+    """
+    cfg = current_app.config
+    res = requests.get(f"{cfg['OPENROUTER_BASE']}/models", timeout=20)
+    res.raise_for_status()
+    models = []
+    for m in res.json().get("data", []):
+        mid = m.get("id", "")
+        if not mid.endswith(":free"):
+            continue
+        models.append(
+            {
+                "id": mid,
+                "name": m.get("name", mid),
+                "context_length": m.get("context_length"),
+                "description": (m.get("description") or "")[:300],
+            }
+        )
+    models.sort(key=lambda m: m["id"])
+    return models
+
+
+def stats_rollup(days: int = 7) -> list[dict]:
+    """Per-model success rate and latency percentiles over a recent window.
+
+    Latencies come from successful calls only; last_error is the most recent
+    failure. Sorted best-behaved first.
+    """
+    rows = query(
+        "SELECT model, ok, latency_ms, error FROM model_stats"
+        " WHERE created_at >= datetime('now', ?) ORDER BY created_at DESC",
         (f"-{int(days)} days",),
     )
+    by_model: dict[str, dict] = {}
+    for r in rows:
+        s = by_model.setdefault(
+            r["model"],
+            {"model": r["model"], "calls": 0, "ok": 0, "latencies": [], "last_error": None},
+        )
+        s["calls"] += 1
+        if r["ok"]:
+            s["ok"] += 1
+            if r["latency_ms"] is not None:
+                s["latencies"].append(r["latency_ms"])
+        elif s["last_error"] is None:
+            s["last_error"] = r["error"]  # rows are newest-first
+
+    out = []
+    for s in by_model.values():
+        lat = sorted(s["latencies"])
+        out.append(
+            {
+                "model": s["model"],
+                "calls": s["calls"],
+                "ok_rate": round(s["ok"] / s["calls"], 3) if s["calls"] else 0.0,
+                "p50_ms": lat[len(lat) // 2] if lat else None,
+                "p95_ms": lat[max(0, int(len(lat) * 0.95) - 1)] if lat else None,
+                "last_error": s["last_error"],
+            }
+        )
+    out.sort(key=lambda s: (-s["ok_rate"], s["model"]))
+    return out

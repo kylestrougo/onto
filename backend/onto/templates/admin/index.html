@@ -29,7 +29,7 @@
       <li class="goal-row">
         <span>{{ m['model'] }}</span>
         <span class="muted">{{ m['calls'] }} calls · {{ (100 * m['ok_rate']) | round | int }}% ok
-          · ~{{ m['avg_ms'] }}ms{% if m['last_error'] %} · last error: {{ m['last_error'][:60] }}{% endif %}</span>
+          · p50 {{ m['p50_ms'] or '—' }}ms{% if m['last_error'] %} · last error: {{ m['last_error'][:60] }}{% endif %}</span>
       </li>
       {% else %}
       <li class="goal-row"><span class="muted">No LLM calls recorded yet.</span></li>
@@ -48,6 +48,8 @@
         <span class="muted">open data, venue feeds, research — provenance and health</span></li>
       <li class="goal-row"><a href="{{ url_for('admin.events') }}">Event corpus</a>
         <span class="muted">recent ingests and the uncategorized queue</span></li>
+      <li class="goal-row"><a href="{{ url_for('admin.models') }}">LLM models</a>
+        <span class="muted">the fallback chain, per-task overrides, live test</span></li>
     </ul>
   </div>
 </div>

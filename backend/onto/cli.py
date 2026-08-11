@@ -29,6 +29,7 @@ def housekeeping() -> None:
         else "DELETE FROM events WHERE status IN ('expired', 'removed')"
         " AND COALESCE(ends_at, starts_at) < datetime('now', '-30 days')"
     )
+    db.execute("DELETE FROM model_stats WHERE created_at < datetime('now', '-30 days')")
     db.commit()
     from .discovery import suggestions as sugg
 
@@ -122,6 +123,167 @@ def match_cmd() -> None:
     click.echo(f"match: created {made} suggestions")
 
 
+# ── Model chain automation (curio port) ─────────────────────────────────
+# The free catalogue churns without notice — models get renamed and retired,
+# and a chain that worked last week can be entirely dead this week, which
+# takes discovery and digests down with it. refresh-chain repairs a dead
+# chain and refuses to touch a working one: latency is the one thing a
+# benchmark can judge, and it says nothing about whether the prose is any
+# good. Choosing on quality stays a human decision, made from /admin/models.
+
+BENCH_COMMITMENT_IDS = {1, 2}
+BENCH_EVENT_IDS = {10}
+
+
+def _bench_prompt() -> tuple[str, str]:
+    """The canonical probe: one fixed digest fact sheet, identical for every
+    model, so latencies are comparable and the gate matches production."""
+    from .notify.compose import _digest_prompt
+
+    facts = {
+        "week_label": "Aug 10 – Aug 16",
+        "commitments": [
+            {"id": 1, "title": "Work out", "kind": "countable", "target": 3,
+             "logged": 2, "completed_at": None},
+            {"id": 2, "title": "Cook something new", "kind": "binary", "target": None,
+             "logged": 0, "completed_at": None},
+        ],
+        "score": {"earned": 0.67, "possible": 2.0, "percent": 33},
+        "gap_names": ["Culture"],
+        "friends": [],
+        "suggestions": [
+            {"event_id": 10, "event_title": "Rooftop Jazz", "starts_at": "2099-09-01 19:00:00",
+             "venue_name": "Pier 4", "borough": "Brooklyn", "is_free": 1,
+             "reason": "matches seeing live music"}
+        ],
+    }
+    return _digest_prompt(facts)
+
+
+def _check_contract(parsed) -> str | None:
+    """Why a probe response is unusable, or None when production would take it.
+
+    Latency alone is a trap: a model that answers fast with invented event
+    ids or date-laced prose is worse than a slower one that gets it right.
+    The gate is the exact validator the digest pipeline trusts.
+    """
+    from .notify import validate
+
+    if not isinstance(parsed, dict):
+        return "not an object"
+    if validate.clean(parsed, BENCH_COMMITMENT_IDS, BENCH_EVENT_IDS) is None:
+        return "nothing survived the digest validator"
+    return None
+
+
+def _bench(ids, repeat, echo=None):
+    """Time each model on a real digest generation. Returns [(ms|None, id, failure)].
+
+    Sequential on purpose: firing these in parallel measures the free tier's
+    rate limiter rather than the models.
+    """
+    from statistics import median
+
+    from . import llm
+
+    system, user = _bench_prompt()
+    results = []
+    for mid in ids:
+        latencies, failure = [], None
+        for _ in range(repeat):
+            r = llm.generate_raw(mid, system, user, intent="bench")
+            if not r["ok"]:
+                failure = (r["error"] or "failed")[:60]
+                break
+            reason = _check_contract(r["parsed"])
+            if reason:
+                failure = f"off-contract: {reason}"
+                break
+            latencies.append(r["latency_ms"])
+        if failure:
+            results.append((None, mid, failure))
+            if echo:
+                echo(f"  x {mid} — {failure}")
+        else:
+            ms = int(median(latencies))
+            results.append((ms, mid, None))
+            if echo:
+                echo(f"  ok {mid} — {ms}ms")
+    return results
+
+
+def _usable(results):
+    # (ms, id, None) tuples sort fastest-first, ties broken alphabetically.
+    return sorted([r for r in results if r[0] is not None])
+
+
+@click.command("refresh-chain")
+@click.option("--force", is_flag=True, help="Re-rank even when the current chain still works.")
+@click.option("--repeat", type=int, default=3, help="Calls per model; median is used.")
+@click.option("--top", type=int, default=3, help="How many models to keep in the chain.")
+@click.option("--dry-run", is_flag=True, help="Report what would change, change nothing.")
+@with_appcontext
+def refresh_chain_command(force, repeat, top, dry_run):
+    """Repair the model chain when it has rotted. Intended for cron.
+
+    Checks the chain still works and only rebuilds it when it doesn't. It
+    will NOT reorder a working chain to chase a faster model. Better a stale
+    chain than none: an empty chain fails every generation, so both failure
+    paths leave the current chain alone and exit nonzero.
+    """
+    from .llm import CONFIG_KEY_CHAIN, get_chain, list_free_models, set_config_json
+
+    current = get_chain()
+    click.echo(f"chain: {' -> '.join(current) or '(empty)'}")
+
+    working = _usable(_bench(current, repeat, echo=click.echo)) if current else []
+    if working and not force:
+        click.echo(f"chain is healthy ({len(working)}/{len(current)} usable) — leaving it alone")
+        return
+
+    click.echo("chain is dead — rebuilding from the catalogue" if not force else "forced re-rank")
+    catalogue = [m["id"] for m in list_free_models()]
+    if not catalogue:
+        click.echo("catalogue returned nothing — leaving the chain alone")
+        raise SystemExit(1)
+
+    ranked = _usable(_bench(catalogue, repeat, echo=click.echo))
+    if not ranked:
+        # Better a stale chain than none: an empty chain fails every call.
+        click.echo("nothing in the catalogue passed — leaving the chain alone")
+        raise SystemExit(1)
+
+    new = [mid for _, mid, _ in ranked[:top]]
+    if new == current:
+        click.echo("no change")
+        return
+    if dry_run:
+        click.echo(f"would set: {' -> '.join(new)}")
+        return
+    set_config_json(CONFIG_KEY_CHAIN, new)
+    click.echo(f"chain updated: {' -> '.join(new)}")
+
+
+@click.command("bench-models")
+@click.option("--all-free", is_flag=True, help="Bench the whole free catalogue, not just the chain.")
+@click.option("--repeat", type=int, default=3, help="Calls per model; median is used.")
+@with_appcontext
+def bench_models_command(all_free, repeat):
+    """Manually rank models by usable-then-fast. Prints a paste-ready chain."""
+    from .llm import get_chain, list_free_models
+
+    ids = [m["id"] for m in list_free_models()] if all_free else get_chain()
+    if not ids:
+        click.echo("nothing to bench")
+        return
+    good = _usable(_bench(ids, repeat, echo=click.echo))
+    if not good:
+        click.echo("nothing passed")
+        raise SystemExit(1)
+    click.echo("")
+    click.echo("fastest usable chain: " + ",".join(mid for _, mid, _ in good[:3]))
+
+
 @click.command("send-digests")
 @with_appcontext
 def send_digests_cmd() -> None:
@@ -213,3 +375,5 @@ def init_app(app) -> None:
     app.cli.add_command(research_cmd)
     app.cli.add_command(match_cmd)
     app.cli.add_command(send_digests_cmd)
+    app.cli.add_command(refresh_chain_command)
+    app.cli.add_command(bench_models_command)
