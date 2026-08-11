@@ -30,20 +30,29 @@ Set `ONTO_COOKIE_SECURE=0` for local http. First signup matching
 
 ## Deploy (Pi)
 
+One command, as your normal user (not root), from anywhere you cloned the repo:
+
 ```bash
-bash deploy/preflight.sh    # read-only: will this Pi work?
-bash deploy/make-env.sh     # writes backend/.env (local-only, mail dry-run)
-python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt
-bash deploy/smoke.sh        # boots as systemd would, checks, stops
-sudo cp deploy/onto.service /etc/systemd/system/ && sudo systemctl enable --now onto
-crontab deploy/crontab.example   # after editing paths
-sudo cp deploy/logrotate.onto /etc/logrotate.d/onto
+bash deploy/install.sh
 ```
 
-TLS via Tailscale Funnel (`sudo tailscale funnel --bg 5000`) or your own
-tunnel. Add event sources from `/admin/sources` — `docs/sources.md` has
-ready-made configs. Tier-3 research needs `ONTO_SEARXNG_URL` pointing at a
-self-hosted SearXNG.
+It asks a few questions on the first run (admin username, OpenRouter key,
+optional email), then does everything: system packages, venv, config, database,
+a smoke test, the systemd service, all nine cron jobs, and logrotate — with
+paths rewritten for your user and checkout, and a full log in `deploy/logs/`.
+Secrets are typed with echo off and never logged. **Re-running it is the update
+procedure**: `git pull && bash deploy/install.sh` keeps your config, refreshes
+dependencies, and restarts the service.
+
+It finishes by printing your next steps: sign up as the admin username, add
+event sources at `/admin/sources` (ready-made configs in `docs/sources.md`),
+expose it with `sudo tailscale funnel --bg 5000` when ready, and flip email
+out of dry-run once a logged test note looks right. Tier-3 research needs
+`ONTO_SEARXNG_URL` pointing at a self-hosted SearXNG.
+
+The individual pieces are still there if you want them: `deploy/preflight.sh`
+(read-only "will this Pi work?"), `deploy/smoke.sh` (boot, check, stop),
+`deploy/make-env.sh` (config only).
 
 ## Layout
 

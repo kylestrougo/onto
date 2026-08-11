@@ -14,3 +14,9 @@ backend/uploads/
 
 # Editor noise
 .DS_Store
+
+# Runtime state created by deploy/install.sh
+logs/
+uploads/
+backups/
+deploy/logs/
