@@ -24,11 +24,12 @@ def show(key: str):
         abort(404)
     current = periods.current_key("month", current_user.timezone)
     return render_template(
-        "month.html",
+        "period.html",
         period_kind="month",
         key=key,
         label=periods.label("month", key),
         is_current=(key == current),
+        is_past=(key < current),
         prev_key=periods.shift("month", key, -1),
         next_key=periods.shift("month", key, 1),
         current_key=current,

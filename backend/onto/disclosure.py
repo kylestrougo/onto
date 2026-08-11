@@ -13,9 +13,9 @@ from .db import execute, query
 
 # flag -> human blurb shown the moment it unlocks.
 FLAGS = {
-    "mix": "New: set a balance across categories from the mix page.",
-    "social": "New: add friends and share goals from the friends page.",
-    "months": "New: plan a whole month, not just weeks.",
+    "mix": "New: set a balance across categories — the link is in Settings.",
+    "social": "New: add friends and share goals from the Friends page.",
+    "months": "New: plan a whole month — flip the Week/Month switch up top.",
 }
 
 

@@ -148,23 +148,46 @@ def _ids_for(category_slug: str, subcategory_slug: str) -> tuple[int, int] | Non
     return (row["cat_id"], row["sub_id"]) if row else None
 
 
+def _clone_starter(user_id: int, starter: tuple) -> int | None:
+    title, kind, cat_slug, sub_slug, target, recurring = starter
+    ids = _ids_for(cat_slug, sub_slug)
+    if not ids:
+        return None
+    cat_id, sub_id = ids
+    goal_id = execute(
+        "INSERT INTO goals (created_by, title, kind, category_id, subcategory_id,"
+        " default_target, recurring) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (user_id, title, kind, cat_id, sub_id, target, recurring),
+    )
+    execute(
+        "INSERT INTO goal_members (goal_id, user_id, role) VALUES (?, ?, 'owner')",
+        (goal_id, user_id),
+    )
+    return goal_id
+
+
 def starter_goals_for(user_id: int) -> None:
-    """Clone the starter library for a fresh account. Idempotent per user."""
+    """Clone the whole starter library for a fresh account (config-gated).
+    Idempotent per user."""
     if query(
         "SELECT 1 FROM goals WHERE created_by = ? LIMIT 1", (user_id,), one=True
     ):
         return
-    for title, kind, cat_slug, sub_slug, target, recurring in STARTER_GOALS:
-        ids = _ids_for(cat_slug, sub_slug)
-        if not ids:
-            continue
-        cat_id, sub_id = ids
-        goal_id = execute(
-            "INSERT INTO goals (created_by, title, kind, category_id, subcategory_id,"
-            " default_target, recurring) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (user_id, title, kind, cat_id, sub_id, target, recurring),
-        )
-        execute(
-            "INSERT INTO goal_members (goal_id, user_id, role) VALUES (?, ?, 'owner')",
-            (goal_id, user_id),
-        )
+    for starter in STARTER_GOALS:
+        _clone_starter(user_id, starter)
+
+
+def quick_add(user_id: int, title: str) -> int | None:
+    """Clone one starter goal by title — the library page's quick-add.
+    A second tap of the same title is a no-op."""
+    for starter in STARTER_GOALS:
+        if starter[0] == title:
+            if query(
+                "SELECT 1 FROM goals g JOIN goal_members m ON m.goal_id = g.id"
+                " WHERE m.user_id = ? AND g.title = ? AND g.retired_at IS NULL",
+                (user_id, title),
+                one=True,
+            ):
+                return None
+            return _clone_starter(user_id, starter)
+    return None

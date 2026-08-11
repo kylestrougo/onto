@@ -59,7 +59,10 @@ def test_countable_partial_logging(app, signed_in):
 
     signed_in.post(f"/commitments/{cid}/log")
     resp = signed_in.post(f"/commitments/{cid}/log")
-    assert b"2/3" in resp.data
+    # The card deliberately shows no running count — but it's not done yet,
+    # and the undo control proves the logs registered.
+    assert b"is-done" not in resp.data
+    assert b"Undo one" in resp.data
     with app.app_context():
         row = query("SELECT completed_at FROM commitments WHERE id=?", (cid,), one=True)
         assert row["completed_at"] is None  # 2 of 3 is not done

@@ -227,9 +227,7 @@ def save_weights():
 # ── Event sources & corpus ───────────────────────────────────────────────
 
 
-@bp.get("/sources")
-@admin_required
-def sources():
+def _sources_context(source_test=None):
     rows = query("SELECT * FROM sources ORDER BY name")
     counts = {
         r["source_id"]: r["n"]
@@ -238,7 +236,13 @@ def sources():
             " GROUP BY source_id"
         )
     }
-    return render_template("admin/sources.html", sources=rows, counts=counts)
+    return {"sources": rows, "counts": counts, "source_test": source_test}
+
+
+@bp.get("/sources")
+@admin_required
+def sources():
+    return render_template("admin/sources.html", **_sources_context())
 
 
 @bp.post("/sources")
@@ -292,6 +296,39 @@ def edit_source(source_id: int):
             (source_id,),
         )
     return redirect(url_for("admin.sources"))
+
+
+@bp.post("/sources/<int:source_id>/test")
+@admin_required
+def test_source(source_id: int):
+    """Dry-run one source: fetch and parse through its adapter, count what
+    would be usable, show a sample — and write NOTHING. The error counter
+    stays untouched too; a test is a look, not a run."""
+    src = query("SELECT * FROM sources WHERE id = ?", (source_id,), one=True)
+    if not src:
+        flash("That source is gone.")
+        return redirect(url_for("admin.sources"))
+
+    from ..ingest.registry import adapter_for
+
+    result = {"name": src["name"], "ok": False, "valid": 0, "invalid": 0, "samples": []}
+    try:
+        adapter = adapter_for(src["kind"])
+        config = json.loads(src["config_json"])
+        for raw in adapter.fetch(config):
+            if raw.title and raw.url and raw.starts_at:
+                result["valid"] += 1
+                if len(result["samples"]) < 5:
+                    result["samples"].append(
+                        {"title": raw.title, "starts_at": raw.starts_at,
+                         "url": raw.url, "borough": raw.borough}
+                    )
+            else:
+                result["invalid"] += 1
+        result["ok"] = True
+    except Exception as exc:  # noqa: BLE001 — the failure IS the result
+        result["error"] = str(exc)[:300]
+    return render_template("admin/sources.html", **_sources_context(source_test=result))
 
 
 @bp.get("/events")

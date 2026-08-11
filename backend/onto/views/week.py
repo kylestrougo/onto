@@ -30,7 +30,7 @@ def show(key: str):
         abort(404)
     current = periods.current_key("week", current_user.timezone)
     return render_template(
-        "week.html",
+        "period.html",
         period_kind="week",
         key=key,
         label=periods.label("week", key),
@@ -201,6 +201,7 @@ def recap(kind: str, key: str):
         "recap.html",
         period_kind=kind,
         key=key,
+        is_past=(key < periods.current_key(kind, current_user.timezone)),
         label=periods.label(kind, key),
         score=score,
         fraction=scoring.fraction,

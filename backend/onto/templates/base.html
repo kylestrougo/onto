@@ -6,7 +6,6 @@
   <title>{% block title %}Onto{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/onto.css') }}">
   <script src="{{ url_for('static', filename='js/vendor/htmx.min.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='js/vendor/sortable.min.js') }}" defer></script>
   <script src="{{ url_for('static', filename='js/onto.js') }}" defer></script>
 </head>
 <body>
@@ -15,33 +14,21 @@
     <nav class="nav">
       <a class="brand" href="{{ url_for('week.home') }}">onto</a>
       <a href="{{ url_for('week.home') }}"
-         class="{{ 'active' if request.endpoint in ('week.home', 'week.show') }}">This week</a>
-      {% if unlocked('months') %}
-      <a href="{{ url_for('month.home') }}"
-         class="{{ 'active' if request.endpoint in ('month.home', 'month.show') }}">This month</a>
-      {% endif %}
+         class="{{ 'active' if request.endpoint in ('week.home', 'week.show', 'week.recap', 'month.home', 'month.show') }}">Plan</a>
       <a href="{{ url_for('library.index') }}"
-         class="{{ 'active' if request.endpoint and request.endpoint.startswith('library.') }}">Things I want to do</a>
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('library.') }}">My list</a>
       <a href="{{ url_for('discover.index') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('discover.') }}">For you</a>
       {% if unlocked('social') %}
-      <a href="{{ url_for('social.show_feed') }}"
-         class="{{ 'active' if request.endpoint == 'social.show_feed' }}">Feed</a>
       <a href="{{ url_for('social.friends') }}"
-         class="{{ 'active' if request.endpoint and request.endpoint.startswith('social.') and request.endpoint != 'social.show_feed' }}">Friends</a>
-      {% endif %}
-      {% if unlocked('mix') %}
-      <a href="{{ url_for('mix.edit') }}"
-         class="{{ 'active' if request.endpoint and request.endpoint.startswith('mix.') }}">Balance</a>
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('social.') }}">Friends</a>
       {% endif %}
       {% if current_user.is_admin %}
       <a href="{{ url_for('admin.index') }}"
          class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.') }}">Admin</a>
       {% endif %}
-      <a href="{{ url_for('settings.edit') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('settings.') }}">Settings</a>
-      <form class="nav-logout" method="post" action="{{ url_for('auth.logout') }}">
-        <button class="linklike" type="submit">Sign out</button>
-      </form>
+      <a href="{{ url_for('settings.edit') }}" class="nav-settings {{ 'active' if request.endpoint and request.endpoint.startswith('settings.') }}"
+         aria-label="Settings">Settings</a>
     </nav>
   </header>
   {% endif %}

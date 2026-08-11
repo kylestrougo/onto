@@ -45,7 +45,14 @@ small, .muted { color: var(--muted); }
   max-width: 1000px;
   margin: 0 auto;
   padding: 0.55rem 1rem;
+  /* Small screens: one row that scrolls sideways instead of wrapping or
+     clipping — every entry stays reachable with a thumb. */
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.nav::-webkit-scrollbar { display: none; }
 .brand {
   font-weight: 700;
   font-size: 1.1rem;
@@ -55,7 +62,7 @@ small, .muted { color: var(--muted); }
 }
 .nav a { text-decoration: none; color: var(--ink); }
 .nav a.active { color: var(--accent); font-weight: 600; }
-.nav-logout { margin-left: auto; }
+.nav-settings { margin-left: auto; color: var(--muted); }
 
 .linklike {
   background: none;
@@ -143,6 +150,24 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 }
 
 /* ── Week view ───────────────────────────────────────────────────────── */
+.period-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 0.7rem;
+  background: var(--card);
+}
+.period-toggle a {
+  padding: 0.3rem 1.1rem;
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.period-toggle a.active { background: var(--accent); color: #fff; }
+.mix-link { margin: -0.5rem 0 1rem; font-size: 0.85rem; }
+
 .week-head {
   display: flex;
   align-items: center;
@@ -242,13 +267,10 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
   padding: 0.45rem 0.6rem;
   margin-bottom: 0.45rem;
   background: var(--bg);
-  cursor: grab;
-  touch-action: manipulation;
 }
 .chip-title { font-weight: 600; font-size: 0.94rem; }
 .chip-meta { grid-column: 1; font-size: 0.8rem; color: var(--muted); }
 .chip-add { grid-column: 2; grid-row: 1 / span 2; }
-.sortable-ghost { opacity: 0.4; }
 .panel-foot { margin-bottom: 0; }
 
 /* ── Tags ────────────────────────────────────────────────────────────── */
@@ -269,30 +291,35 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 .tag-admin-life { background: #ececec; color: #555; }
 
 /* ── Library page ────────────────────────────────────────────────────── */
-.new-goal, .retired-list {
+.new-goal, .retired-list, .quick-add {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.7rem 0.9rem;
   margin-bottom: 1rem;
 }
-.new-goal summary, .retired-list summary { cursor: pointer; font-weight: 600; }
-.goal-form { max-width: 480px; padding-top: 0.5rem; }
-.kind-picker { display: grid; gap: 0.3rem; margin: 0.3rem 0 0.6rem; }
-.kind-option {
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-  font-weight: normal;
-  margin: 0;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--line);
+.new-goal summary, .retired-list summary, .quick-add summary { cursor: pointer; font-weight: 600; }
+/* The one primary action on the page reads as a button, not a twisty. */
+.new-goal summary.btnlike {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
   border-radius: var(--radius);
-  cursor: pointer;
+  padding: 0.45rem 1rem;
+  list-style: none;
 }
-.kind-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.kind-option input { width: auto; }
-.kind-option small { display: block; color: var(--muted); }
+.new-goal summary.btnlike::-webkit-details-marker { display: none; }
+.new-goal[open] summary.btnlike { margin-bottom: 0.4rem; }
+.quick-add summary { color: var(--muted); }
+.quick-add-row { display: flex; flex-wrap: wrap; gap: 0.4rem; padding-top: 0.6rem; }
+.goal-form { max-width: 480px; padding-top: 0.5rem; }
+.advanced {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  margin: 0.8rem 0 0.2rem;
+}
+.advanced summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 0.9rem; }
 .check-row { display: flex; gap: 0.5rem; align-items: center; font-weight: 500; }
 .check-row input { width: auto; }
 
@@ -356,6 +383,8 @@ button[type="submit"]:hover, .btn:hover { filter: brightness(1.07); }
 .tagbg-hobby { background: #5a6e2a; }
 .tagbg-culture { background: #8e6023; }
 .tagbg-admin-life { background: #777; }
+
+.signout-form { margin-top: 2.2rem; }
 
 /* ── Social ──────────────────────────────────────────────────────────── */
 .friend-add { display: flex; gap: 0.5rem; max-width: 420px; margin-bottom: 1rem; }

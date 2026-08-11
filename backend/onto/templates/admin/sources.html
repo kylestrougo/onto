@@ -6,6 +6,30 @@
 2 = structured venue feed, 3 = LLM research. Five straight failures auto-disables
 a source; user flags can quarantine one.</p>
 
+{% if source_test %}
+<div class="test-result {{ 'test-ok' if source_test.ok else 'test-bad' }}">
+  <strong>Test: {{ source_test.name }}</strong>
+  {% if source_test.ok %}
+    — {{ source_test.valid }} usable event{{ '' if source_test.valid == 1 else 's' }},
+    {{ source_test.invalid }} unusable. Nothing was saved; run ingest to bring them in.
+    {% if source_test.samples %}
+    <ul class="goal-rows" style="margin-top:0.5rem">
+      {% for ev in source_test.samples %}
+      <li class="goal-row">
+        <div class="goal-row-main">
+          <a href="{{ ev.url }}" target="_blank" rel="noopener"><strong>{{ ev.title }}</strong></a>
+          <span class="muted">{{ ev.starts_at }}{% if ev.borough %} · {{ ev.borough }}{% endif %}</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  {% else %}
+    — failed: <span class="muted">{{ source_test.error }}</span>
+  {% endif %}
+</div>
+{% endif %}
+
 <ul class="goal-rows">
   {% for s in sources %}
   <li class="goal-row {% if not s['enabled'] or s['quarantined_at'] %}is-retired{% endif %}">
@@ -18,6 +42,9 @@ a source; user flags can quarantine one.</p>
     </div>
     <div class="goal-row-meta">
       <span class="muted">{{ s['last_status'][:60] }}</span>
+      <form method="post" action="{{ url_for('admin.test_source', source_id=s['id']) }}" class="inline-form">
+        <button class="btn-mini" type="submit">Test</button>
+      </form>
       <form method="post" action="{{ url_for('admin.edit_source', source_id=s['id']) }}" class="inline-form">
         {% if s['quarantined_at'] %}
           <input type="hidden" name="action" value="unquarantine">

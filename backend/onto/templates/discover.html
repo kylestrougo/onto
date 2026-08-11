@@ -20,4 +20,8 @@ for — edit one in <a href="{{ url_for('library.index') }}">your list</a> and
 flip the toggle. Some goals want suggestions ("run a 5K"); some don't
 ("call Mom").</p>
 {% endif %}
+
+{% if current_user.is_admin %}
+<p class="muted"><a href="{{ url_for('admin.sources') }}">Admin: manage &amp; test event sources →</a></p>
+{% endif %}
 {% endblock %}

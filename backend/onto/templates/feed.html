@@ -4,6 +4,7 @@
 <div class="week-layout">
   <section>
     <h1>What everyone's up to</h1>
+    <p class="muted"><a href="{{ url_for('social.friends') }}">Manage friends →</a></p>
     {% if items %}
     <ul class="goal-rows">
       {% for item in items %}

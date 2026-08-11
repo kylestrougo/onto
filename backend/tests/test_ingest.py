@@ -233,3 +233,32 @@ def test_admin_source_crud(app, admin):
         assert query("SELECT id FROM sources WHERE name='Broken'", one=True) is None
     page = admin.get("/admin/sources")
     assert b"Test Feed" in page.data
+
+
+def test_admin_source_test_button_is_a_dry_run(app, admin):
+    """The Test button fetches and parses but writes no events and leaves
+    the error counter alone — success and failure both render as content."""
+    with app.app_context():
+        sid = _add_source(
+            "Example Hall", "ics", 2,
+            {"url": "https://x/cal.ics", "borough": "Manhattan",
+             "category_hint": "culture/live-music", "venue_name": "Example Hall"},
+        )
+    with patch("onto.ingest.base.http_get", _fake_http("venue.ics")):
+        page = admin.post(f"/admin/sources/{sid}/test")
+    assert b"3 usable events" in page.data
+    assert b"Jazz Quartet Night" in page.data
+    with app.app_context():
+        # Dry run: the corpus is untouched.
+        assert query("SELECT COUNT(*) AS n FROM events", one=True)["n"] == 0
+
+    def boom(url, **kwargs):
+        raise ValueError("feed exploded")
+
+    with patch("onto.ingest.base.http_get", boom):
+        page = admin.post(f"/admin/sources/{sid}/test")
+    assert b"feed exploded" in page.data
+    with app.app_context():
+        # A failed test never counts toward auto-disable.
+        row = query("SELECT consecutive_errors, enabled FROM sources WHERE id=?", (sid,), one=True)
+        assert (row["consecutive_errors"], row["enabled"]) == (0, 1)

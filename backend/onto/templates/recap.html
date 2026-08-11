@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}How it went — Onto{% endblock %}
+{% block title %}Progress — Onto{% endblock %}
 {% block content %}
-<h1>{{ label }} — how it went</h1>
+<h1>{{ label }} — {{ 'how it went' if is_past else 'progress so far' }}</h1>
 
 {% if score.rows %}
 <div class="recap-score">

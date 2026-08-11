@@ -2,6 +2,7 @@
 {% block title %}Friends — Onto{% endblock %}
 {% block content %}
 <h1>Friends</h1>
+<p class="muted"><a href="{{ url_for('social.show_feed') }}">See what everyone's up to →</a></p>
 
 <form method="post" action="{{ url_for('social.request_friend') }}" class="friend-add">
   <input name="username" placeholder="Add a friend by username" required>

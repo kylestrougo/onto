@@ -16,6 +16,9 @@
     <input type="checkbox" name="show_everything" value="1" {% if show_everything %}checked{% endif %}>
     Show every feature now (skip the gradual reveal)
   </label>
+  {% if unlocked('mix') %}
+  <p class="muted"><a href="{{ url_for('mix.edit') }}">Set a balance across categories →</a></p>
+  {% endif %}
 
   <h2>Your weekly note</h2>
   <p class="muted">A short recap and a few things happening near you.
@@ -37,8 +40,14 @@
   <label>Email address <small>(only needed for email notes)</small>
     <input name="email" type="email" value="{{ prefs['email'] }}" placeholder="you@example.com">
   </label>
-  <label>Around what hour
-    <input name="send_hour" type="number" min="0" max="23" value="{{ prefs['send_hour'] }}">
+  <label>Around what hour <small>(your local time — {{ timezone }})</small>
+    <select name="send_hour">
+      {% for h in range(24) %}
+      <option value="{{ h }}" {% if prefs['send_hour'] == h %}selected{% endif %}>
+        {{ h % 12 or 12 }}:00 {{ 'AM' if h < 12 else 'PM' }}
+      </option>
+      {% endfor %}
+    </select>
   </label>
   <label>Which day <small>(for the weekly note)</small>
     <select name="send_dow">
@@ -51,5 +60,9 @@
 
   <input type="hidden" name="timezone" class="js-timezone" value="{{ timezone }}">
   <button type="submit">Save</button>
+</form>
+
+<form method="post" action="{{ url_for('auth.logout') }}" class="signout-form">
+  <button class="btn btn-quiet" type="submit">Sign out</button>
 </form>
 {% endblock %}

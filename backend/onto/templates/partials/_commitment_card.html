@@ -28,7 +28,8 @@
   </div>
   <div class="commit-actions">
     {% if c['target'] and c['target'] > 1 %}
-      <span class="count">{{ logged }}/{{ c['target'] }}</span>
+      {# The running count stays out of the card on purpose — the header badge
+         and the Progress view carry the numbers. #}
       {% if logged > 0 %}
         <button class="btn-mini" hx-post="{{ url_for('week.unlog', cid=c['id']) }}"
                 hx-target="#commitment-{{ c['id'] }}" hx-swap="outerHTML" aria-label="Undo one">−</button>

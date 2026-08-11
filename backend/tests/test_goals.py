@@ -25,6 +25,20 @@ def test_create_goal(app, signed_in):
         assert row["recurring"] == 1
 
 
+def test_kind_derived_from_count_when_not_given(app, signed_in):
+    """The simplified form sends no kind: a count of 1 means once-is-done,
+    more means countable."""
+    with app.app_context():
+        cat = query("SELECT id FROM categories WHERE slug='hobby'", one=True)["id"]
+    signed_in.post("/goals", data={"title": "Just once", "category_id": cat,
+                                   "default_target": 1})
+    signed_in.post("/goals", data={"title": "Thrice", "category_id": cat,
+                                   "default_target": 3})
+    with app.app_context():
+        assert query("SELECT kind FROM goals WHERE title='Just once'", one=True)["kind"] == "binary"
+        assert query("SELECT kind FROM goals WHERE title='Thrice'", one=True)["kind"] == "countable"
+
+
 def test_countable_requires_target(app, signed_in):
     with app.app_context():
         cat = query("SELECT id FROM categories WHERE slug='hobby'", one=True)["id"]

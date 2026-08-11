@@ -27,6 +27,10 @@ def app():
         DAILY_CAP_USER = 10
         MAIL_DRY_RUN = True
         DEFAULT_TZ = "America/New_York"
+        # Most tests exercise a lived-in account, so seed the starter library
+        # at signup here; production default is an empty start (quick-adds
+        # instead), covered explicitly in test_seed.
+        STARTER_GOALS_ON_SIGNUP = True
 
     application = create_app(TestConfig)
     yield application

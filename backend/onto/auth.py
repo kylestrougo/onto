@@ -143,10 +143,12 @@ def signup():
 
 
 def _on_signup(user_id: int) -> None:
-    """Post-signup hooks; later phases attach starter-library seeding here."""
-    from . import seed
+    """Post-signup hooks. Accounts start empty by default — the library page
+    offers the starter goals as quick-adds instead of pre-filling the list."""
+    if current_app.config.get("STARTER_GOALS_ON_SIGNUP"):
+        from . import seed
 
-    seed.starter_goals_for(user_id)
+        seed.starter_goals_for(user_id)
 
 
 @bp.get("/login")

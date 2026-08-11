@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Plan — Onto{% endblock %}
+{% block content %}
+{% if unlocked('months') %}
+<div class="period-toggle" role="tablist">
+  <a role="tab" class="{{ 'active' if period_kind == 'week' }}"
+     href="{{ url_for('week.home') }}">Week</a>
+  <a role="tab" class="{{ 'active' if period_kind == 'month' }}"
+     href="{{ url_for('month.home') }}">Month</a>
+</div>
+{% endif %}
+
+<div class="week-head">
+  <a class="week-nav" href="{{ url_for(period_kind ~ '.show', key=prev_key) }}"
+     aria-label="Previous {{ period_kind }}">&larr;</a>
+  <div class="week-title">
+    <h1>{% if is_current %}This {{ period_kind }}{% else %}{{ label }}{% endif %}</h1>
+    <div class="week-sub">
+      {% if is_current %}{{ label }}{% else %}<a href="{{ url_for(period_kind ~ '.show', key=current_key) }}">Back to this {{ period_kind }}</a>{% endif %}
+      {% include "partials/_progress_badge.html" %}
+      <a href="{{ url_for('week.recap', kind=period_kind, key=key) }}">{{ 'How it went' if is_past else 'Progress' }}</a>
+    </div>
+  </div>
+  <a class="week-nav" href="{{ url_for(period_kind ~ '.show', key=next_key) }}"
+     aria-label="Next {{ period_kind }}">&rarr;</a>
+</div>
+
+{% if mix_rows %}
+  {% with oob = False %}{% include "partials/_mix_bar.html" %}{% endwith %}
+  {% if unlocked('mix') %}<p class="muted mix-link"><a href="{{ url_for('mix.edit') }}">Adjust the balance →</a></p>{% endif %}
+{% endif %}
+
+<div class="week-layout">
+  <section class="commit-zone">
+    <ul id="commit-list" class="commit-list">
+      {% for c in commitments %}
+        {% with logged = c['logged'], oob_progress = None, oob_score = None %}
+          {% include "partials/_commitment_card.html" %}
+        {% endwith %}
+      {% endfor %}
+    </ul>
+    <p id="commit-empty" class="empty-hint {% if commitments %}hidden{% endif %}">
+      {% if period_kind == 'month' %}
+        Bigger, slower things live here — visit a museum sometime this month.
+      {% endif %}
+      Tap <strong>+&nbsp;Add</strong> on something in your list to plan it.
+    </p>
+  </section>
+
+  <aside class="library-panel">
+    {% if suggestion_cards %}
+    <h2>Happening near you</h2>
+    <ul class="commit-list">
+      {% for card in suggestion_cards %}
+        {% include "partials/_suggestion_card.html" %}
+      {% endfor %}
+    </ul>
+    <p class="muted"><a href="{{ url_for('discover.index') }}">More like these →</a></p>
+    {% endif %}
+    <h2>Things I want to do</h2>
+    <ul id="library-list" class="chip-list">
+      {% for goal in available %}
+        {% include "partials/_goal_chip.html" %}
+      {% endfor %}
+    </ul>
+    <p class="muted panel-foot">
+      <a href="{{ url_for('library.index') }}">Add or edit the list &rarr;</a>
+    </p>
+  </aside>
+</div>
+{% endblock %}

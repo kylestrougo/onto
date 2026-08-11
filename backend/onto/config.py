@@ -101,3 +101,8 @@ class Config:
 
     # The single admin. First account created with this username is promoted.
     ADMIN_USERNAME = os.environ.get("ONTO_ADMIN_USERNAME", "")
+
+    # New accounts start with an empty list; the library page offers the
+    # starter goals as one-tap quick-adds instead. Flip this on to go back to
+    # pre-seeding every new account.
+    STARTER_GOALS_ON_SIGNUP = _bool("ONTO_STARTER_GOALS_ON_SIGNUP", False)

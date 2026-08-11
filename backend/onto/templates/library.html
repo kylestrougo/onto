@@ -2,57 +2,73 @@
 {% block title %}Things I want to do — Onto{% endblock %}
 {% block content %}
 <h1>Things I want to do</h1>
-<p class="muted">Add them once, use them every week. Drag them into a week from the week page.</p>
+<p class="muted">Add them once, use them every week — tap <strong>+ Add</strong> on the Plan page to put one into your week.</p>
 
 <details class="new-goal" {% if not active %}open{% endif %}>
-  <summary>Add something</summary>
+  <summary class="btnlike">+ Add a goal</summary>
   <form method="post" action="{{ url_for('library.create') }}" class="goal-form">
     <label>What is it?
       <input name="title" maxlength="120" placeholder="e.g. Go climbing" required>
     </label>
 
-    <label>What kind of thing?</label>
-    <div class="kind-picker">
-      {% for kind, (label_text, example) in kind_help.items() %}
-        <label class="kind-option">
-          <input type="radio" name="kind" value="{{ kind }}" {% if kind == 'binary' %}checked{% endif %}>
-          <span><strong>{{ label_text }}</strong> <small>{{ example }}</small></span>
-        </label>
-      {% endfor %}
-    </div>
-
     <div class="js-target-row">
-      <label>How many times per week?
-        <input name="default_target" type="number" min="1" max="99" value="3">
+      <label>How many times a week? <small>(1 = once is done)</small>
+        <input name="default_target" type="number" min="1" max="99" value="1">
       </label>
     </div>
 
     <label>Category
       <select name="category_id" class="js-category" required>
         {% for cat, subs in taxonomy %}
-          <option value="{{ cat['id'] }}">{{ cat['name'] }} — {{ cat['example'] }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>More specifically <small>(optional)</small>
-      <select name="subcategory_id" class="js-subcategory">
-        <option value="">—</option>
-        {% for cat, subs in taxonomy %}
-          {% for sub in subs %}
-            <option value="{{ sub['id'] }}" data-category="{{ cat['id'] }}">{{ sub['name'] }}</option>
-          {% endfor %}
+          <option value="{{ cat['id'] }}">{{ cat['name'] }}</option>
         {% endfor %}
       </select>
     </label>
 
-    <label class="check-row">
-      <input type="checkbox" name="recurring" value="1">
-      Put it in every week automatically
-    </label>
+    <details class="advanced">
+      <summary>More options</summary>
+      <label>It's more of a…
+        <select name="kind" class="js-kind">
+          <option value="">Regular thing (from the count above)</option>
+          <option value="deadline">Done by a date</option>
+          <option value="window">Sometime this month</option>
+          <option value="open">Open-ended — pick a number each week</option>
+          <option value="novelty">Something new — we'll find options</option>
+        </select>
+      </label>
+      <label>More specifically <small>(optional)</small>
+        <select name="subcategory_id" class="js-subcategory">
+          <option value="">—</option>
+          {% for cat, subs in taxonomy %}
+            {% for sub in subs %}
+              <option value="{{ sub['id'] }}" data-category="{{ cat['id'] }}">{{ sub['name'] }}</option>
+            {% endfor %}
+          {% endfor %}
+        </select>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" name="recurring" value="1">
+        Put it in every week automatically
+      </label>
+    </details>
 
     <button type="submit">Add to my list</button>
   </form>
 </details>
+
+{% if quick_options %}
+<details class="quick-add" {% if not active %}open{% endif %}>
+  <summary>Quick add a common one</summary>
+  <div class="quick-add-row">
+    {% for title in quick_options %}
+    <form method="post" action="{{ url_for('library.quick_add') }}" class="inline-form">
+      <input type="hidden" name="title" value="{{ title }}">
+      <button class="btn-mini" type="submit">+ {{ title }}</button>
+    </form>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
 
 <ul class="goal-rows">
   {% for goal in active %}
