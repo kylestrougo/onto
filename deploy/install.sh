@@ -88,7 +88,8 @@ if [ "$mem_mb" -lt 150 ]; then warn "only ${mem_mb}MB memory available — the s
 say "2/9 System packages"
 missing=()
 python3 -c 'import venv, ensurepip' 2>/dev/null || missing+=(python3-venv)
-[ -f /usr/include/ffi.h ] || missing+=(libffi-dev build-essential)   # argon2 may build from source on ARM
+compgen -G "/usr/include/ffi.h" >/dev/null || compgen -G "/usr/include/*/ffi.h" >/dev/null \
+  || missing+=(libffi-dev build-essential)   # argon2 may build from source on ARM
 if [ "${#missing[@]}" -gt 0 ]; then
   echo "Needed: ${missing[*]}"
   if command -v sudo >/dev/null && yes_no "Install them with apt-get now?" y; then
@@ -176,6 +177,29 @@ EOF
 fi
 mkdir -p "$REPO/logs" "$REPO/uploads" "$REPO/backups"
 
+# ── choose the port ─────────────────────────────────────────────────────
+say "Port"
+port_busy() { ss -tln 2>/dev/null | grep -qE "[:.]$1\b"; }
+ONTO_PORT=""
+if [ -f /etc/systemd/system/onto.service ]; then
+  ONTO_PORT="$(grep -oE -- '--listen=127\.0\.0\.1:[0-9]+' /etc/systemd/system/onto.service | grep -oE '[0-9]+$' || true)"
+  [ -z "$ONTO_PORT" ] || ok "keeping the installed service's port: $ONTO_PORT"
+fi
+if [ -z "$ONTO_PORT" ]; then
+  if port_busy 5000; then
+    warn "port 5000 is taken by another service (curio, maybe?) — Onto needs its own"
+    while :; do
+      ask ONTO_PORT "Which port should Onto listen on?" "5001"
+      [[ "$ONTO_PORT" =~ ^[0-9]+$ ]] || { warn "numbers only"; continue; }
+      port_busy "$ONTO_PORT" && { warn "port $ONTO_PORT is taken too"; continue; }
+      break
+    done
+  else
+    ONTO_PORT=5000
+  fi
+  ok "Onto will listen on 127.0.0.1:$ONTO_PORT"
+fi
+
 # ── 5. database ─────────────────────────────────────────────────────────
 say "5/9 Database"
 ( cd "$REPO/backend" && "$VENV/bin/flask" --app wsgi:build init-db )
@@ -183,12 +207,14 @@ ok "schema in place (existing data untouched)"
 
 # ── 6. smoke test ───────────────────────────────────────────────────────
 say "6/9 Smoke test"
-if systemctl is-active --quiet onto 2>/dev/null; then
-  # The service holds port 5000; test on a spare port instead of fighting it.
-  PORT=5099 bash "$REPO/deploy/smoke.sh" || die "smoke test failed — fix the FAIL lines above (full log: $LOG)"
-else
-  bash "$REPO/deploy/smoke.sh" || die "smoke test failed — fix the FAIL lines above (full log: $LOG)"
+SMOKE_PORT="$ONTO_PORT"
+if systemctl is-active --quiet onto 2>/dev/null || port_busy "$ONTO_PORT"; then
+  # The running service (or something else) holds the port; test on a spare
+  # one instead of fighting it.
+  SMOKE_PORT=$((ONTO_PORT + 1000))
+  while port_busy "$SMOKE_PORT"; do SMOKE_PORT=$((SMOKE_PORT + 1)); done
 fi
+PORT="$SMOKE_PORT" bash "$REPO/deploy/smoke.sh" || die "smoke test failed — fix the FAIL lines above (full log: $LOG)"
 
 # ── 7-9 need sudo ───────────────────────────────────────────────────────
 if ! command -v sudo >/dev/null; then
@@ -204,6 +230,7 @@ UNIT_TMP="$(mktemp)"
 sed -e "s|/home/io/onto|$REPO|g" \
     -e "s|^User=.*|User=$(whoami)|" \
     -e "s|^Group=.*|Group=$(id -gn)|" \
+    -e "s|127\.0\.0\.1:5000|127.0.0.1:$ONTO_PORT|" \
     "$REPO/deploy/onto.service" > "$UNIT_TMP"
 sudo cp "$UNIT_TMP" /etc/systemd/system/onto.service
 rm -f "$UNIT_TMP"
@@ -249,7 +276,7 @@ say "Done"
 ADMIN_NAME="$(grep -E '^ONTO_ADMIN_USERNAME=' "$ENV_FILE" | cut -d= -f2-)"
 cat <<EOF
 
-Onto is running at http://127.0.0.1:5000
+Onto is running at http://127.0.0.1:$ONTO_PORT
 
 Next steps, in order:
   1. Open it and SIGN UP as '$ADMIN_NAME' — the first signup with that
@@ -258,7 +285,7 @@ Next steps, in order:
      docs/sources.md), then run one ingest by hand to see events arrive:
        cd $REPO/backend && $VENV/bin/flask --app wsgi:build ingest
   3. When you want it reachable from your phone:
-       sudo tailscale funnel --bg 5000
+       sudo tailscale funnel --bg $ONTO_PORT
      then set ONTO_PUBLIC_URL=https://<your-ts-name>.ts.net and
      ONTO_COOKIE_SECURE=1 in backend/.env and: sudo systemctl restart onto
   4. Email notes: they start in dry-run (logged, not sent). Watch one with
